@@ -23,6 +23,7 @@ export const phone = (bug = 0) => fun('O5 phone').inputs({kind:oneOf('tap','inst
 // Mutant 29 recursively drops every head, hence always true, as does mutant 31.
 export const a11yAccepted = ({Pre,Post,Rm,first}:any,bug=0) => bug===29||bug===31?yes:bug===30?Pre.has(first).implies(Post.has(first).or(Rm.has(first))):everyKey(k=>Pre.has(k).implies(Post.has(k).or(Rm.has(k))))
 export const accessibility = (bug = 0) => rule('O6 accessibility').inputs({x:nat,first:nat}).carries('Pre','Post','Rm').state({ok:0})
+  .assume((e:any)=>everyKey(k=>e.Pre.has(k).implies(e.Pre.has(e.first))))
   .flags((e:any)=>({accepted:a11yAccepted(e,bug)}))
   .step(({accepted}:any)=>({ok:bit(accepted)}))
 // ops.bend:279-280; ops.py:216-217.
