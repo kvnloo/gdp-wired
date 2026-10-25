@@ -10,7 +10,8 @@ export function arbitrary(phase:number|undefined,bug?:Bug,av=false){
  const p:any={};for(const f of fields)p['p_'+f]=f==='phase'?upTo(11):f==='ar'||f==='apr'?upTo(7):nat
  return rule('observed item').params(p).inputs({...inputs,...(av?{av:upTo(2)}:{})}).state(Object.fromEntries(fields.map(f=>[f,f==='phase'&&phase!==undefined?phase:(p:any)=>p['p_'+f]]))).step((e:any)=>av?available(e,bug):delta(e,bug))
 }
-export function claim(i:number,r:any){
+const flatEq=(a:any,b:any)=>fields.reduce((c,f)=>c.and(a[f].eq(b[f])),yes)
+export function claim(i:number,r:any,bug?:Bug){
  const s=(name:string,fn:any,given?:any)=>r.stepLaw(name,fn,given), name=names[i]
  switch(i){
  case 0:return {laws:[r.law(name,(e:any)=>e.phase.eq(8).implies(e.apr.eq(0).and(e.ap.eq(e.au).not())))]}
@@ -25,19 +26,20 @@ export function claim(i:number,r:any){
  case 9:return {steps:[s(name,(_:any,a:any)=>a.phase.eq(11),(b:any)=>b.phase.eq(10).and(b.ev.eq(14),b.role.eq(0)))]}
  case 10:return {steps:[s(name,(b:any,a:any)=>a.phase.eq(11).or(a.phase.eq(10).or(a.phase.eq(2)).and(a.hd.eq(b.hd))),(b:any)=>b.phase.eq(10))]}
  case 11:return {laws:[r.law(name,(e:any)=>e.phase.eq(2).implies(coder(e.ar)))]}
- case 12:return {steps:[s(name,(b:any,a:any)=>sameItem(b,a),(b:any)=>b.av.eq(2).and(ownerEvent(b)))]}
- case 13:return {steps:[s(name,(b:any,a:any)=>sameItem(a,delta(b)),(b:any)=>b.j.eq(b.i).and(ownerEvent(b).not()))]}
- default:return {steps:[s(name,(b:any,a:any)=>sameItem(b,a),(b:any)=>b.i.eq(b.j).not())]}
+ case 12:return {steps:[s(name,(b:any,a:any)=>flatEq(b,a),(b:any)=>b.av.eq(2).and(ownerEvent(b)))]}
+ case 13:return {steps:[s(name,(b:any,a:any)=>flatEq(a,delta(b,bug)),(b:any)=>b.j.eq(b.i).and(ownerEvent(b).not()))]}
+ default:return {steps:[s(name,(b:any,a:any)=>flatEq(b,a),(b:any)=>b.i.eq(b.j).not())]}
  }
 }
 export function helpers(i:number,r:any){
  if(i===0)return [r.law('accepted carries independent owner',(e:any)=>e.phase.eq(7).implies(e.apr.eq(0).and(e.ap.eq(e.au).not())))]
  if(i===11)return [r.law('every live author is coder',(e:any)=>e.phase.eq(0).or(e.phase.eq(11)).or(coder(e.ar)))]
+ if(i>=13)return [r.law('nth outside board is Abandoned',(e:any)=>e.j.atLeast(e.n).implies(fields.reduce((c,f)=>c.and(e[f].eq(f==='phase'?11:0)),yes)))]
  return []
 }
 export function make(i:number,bug?:Bug){
  const r=i===0||i===6||i===11?lifecycle(bug):i>=13?board(bug):arbitrary(phaseFor[i],bug,i===12)
- const q=claim(i,r);return {rule:r,laws:[...helpers(i,r),...(q.laws??[])],steps:q.steps??[]}
+ const q=claim(i,r,bug);return {rule:r,laws:[...helpers(i,r),...(q.laws??[])],steps:q.steps??[]}
 }
 export function violation(c:any,params:any,trace:any[]){
  const r=c.rule,run=r.interpreter(),p=r.encodeParams(params),ws=[...c.laws,...c.steps].map(w=>watch(r.machine,run,w,p,4));let st=run.init(p)
@@ -48,11 +50,11 @@ export function violation(c:any,params:any,trace:any[]){
 export function witness(i:number,bug=mutations[i]){
  const c=make(i,bug),p:any={n:2,j:0};for(const f of fields)p['p_'+f]=f==='phase'?2:f==='ar'?2:f==='hd'?1:0
  if(i===0||i===6||i===11){
-  const tapes=[happy,[...happy.slice(0,7),{ev:9,actor:3,role:7,sha:0,rsha:0,passed:false}],happy.map((e,j)=>j===6?{...e,sha:3}:e),[{ev:0,actor:1,role:4,sha:0,rsha:0,passed:false},{ev:1,actor:1,role:4,sha:0,rsha:0,passed:false}]]
+  const tapes=[happy.map((e,j)=>j===7?{...e,role:1}:e),happy,[...happy.slice(0,7),{ev:9,actor:3,role:7,sha:0,rsha:0,passed:false}],happy.map((e,j)=>j===6?{...e,sha:3}:e),[{ev:0,actor:1,role:4,sha:0,rsha:0,passed:false},{ev:1,actor:1,role:4,sha:0,rsha:0,passed:false}]]
   for(const t of tapes){const w=violation(c,{},t);if(w.breaks)return w}
  }
- for(const ph of [phaseFor[i]??2,6,10,4,3,0])for(const ev of [4,5,8,7,13,14,0,1,9,2])for(const role of [0,1,2,4,7])for(const actor of [0,1])for(const sha of [0,1,2]){
-  const t=violation(c,{...p,p_phase:ph},[{ev,role,actor,sha,rsha:0,passed:true,av:2,i:i===14?1:0}]);if(t.breaks)return t
+ for(const ph of [phaseFor[i]??2,6,10,4,3,0])for(const ev of [4,5,8,7,13,14,0,1,9,2])for(const role of [0,1,2,4,7])for(const actor of [0,1])for(const sha of [0,1,2])for(const rsha of [0,1]){
+  const t=violation(c,{...p,p_phase:ph},[{ev,role,actor,sha,rsha,passed:true,av:2,i:i===14?1:0}]);if(t.breaks)return t
  }
  return {breaks:false}
 }

@@ -92,7 +92,7 @@ export function board(bug?:Bug){
   const d=available(e,bug), target=delta(e,bug)
   const hit=(bug==='board-broadcast'?yes:e.i.eq(e.j)).and(e.j.lt(e.n),e.i.lt(e.n))
   const out:any={}
-  for(const f of fields)out[f]=when(e.j.lt(e.n),when(hit,d[f],e[f]),f==='phase'?11:0)
+  for(const f of fields)out[f]=when(hit,d[f],e[f])
   return out
  })
 }
