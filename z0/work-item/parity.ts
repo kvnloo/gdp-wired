@@ -1,5 +1,5 @@
 import {readFileSync,writeFileSync} from 'node:fs'
-import {lifecycle,statechart,decodeItem,fields,phases} from './port.ts'
+import {lifecycle,statechart,decodeItem,fields,phases,happy} from './port.ts'
 import {claim,make,names,violation} from './laws.ts'
 import {watch} from '../../core/watch.ts'
 const args=process.argv.slice(2),path=args[args.indexOf('--oracle')+1]!,out=args[args.indexOf('--out')+1]??'out'
@@ -19,9 +19,10 @@ function diagnose(st:any,e:any,item:any){
  if([0,13].includes(k)&&![1,2].includes(e.role))return finding(6,'violation','non_coder_implements')
  return finding(null,'info','refused_event')
 }
+let sabotageTape:any
 // Python and TS construct object keys in the same canonical order via decodeItem.
 for(const line of readFileSync(path,'utf8').trim().split('\n')){
- const t=JSON.parse(line),counts=counters[t.kind];counts.tapes++
+ const t=JSON.parse(line),counts=counters[t.kind];counts.tapes++;if(t.id==='early_merge_reference')sabotageTape=t
  let st=run.init({}),g=compiled.init({}),cs=chartRun.init({}),first=false;const rejected:any[]=[],watched:any[]=[],itemWatchViolations:any={}
  if(t.kind==='real'){
  for(let i=0;i<12;i++){const q=claim(i,r);for(const law of [...(q.laws??[]),...(q.steps??[])])watched.push({name:names[i],on:watch(r.machine,run,law,{},4)})}
@@ -55,10 +56,11 @@ for(const line of readFileSync(path,'utf8').trim().split('\n')){
 }
 // Intentional sabotage: early merge must diverge from the Python reference after shortest directed prefix.
 const bad=lifecycle('merge-before-accept'),br=bad.interpreter();let bs=br.init({}),gs=run.init({}),sabotage:any=null
-const tape=[{ev:0,actor:1,role:2},{ev:1,actor:1,role:2},{ev:3,actor:1,role:2},{ev:4,actor:2,role:7,passed:true},{ev:5,actor:2,role:7,passed:true},{ev:6,actor:2,role:7},{ev:9,actor:2,role:7}].map(e=>({sha:0,rsha:0,passed:false,...e}))
-for(let i=0;i<tape.length;i++){const e=bad.encodeInput(tape[i]);bs=br.step({},bs,e);gs=run.step({},gs,e);if(!eq(decodeItem(bs.scalars),decodeItem(gs.scalars))){sabotage={class:'intentional test-only sabotage',step:i,trace:tape.slice(0,i+1),reference:decodeItem(gs.scalars),sabotage:decodeItem(bs.scalars),note:'Pinned Python/production semantics are the reference, not a production bug.'};break}}
+const tape=sabotageTape.events
+for(let i=0;i<tape.length;i++){const e=bad.encodeInput(tape[i]);bs=br.step({},bs,e);gs=run.step({},gs,e);if(!eq(decodeItem(bs.scalars),decodeItem(gs.scalars))){sabotage={class:'intentional test-only sabotage',step:i,trace:tape.slice(0,i+1),reference:sabotageTape.expected[i],python_reference_agrees:eq(decodeItem(gs.scalars),sabotageTape.expected[i]),sabotage:decodeItem(bs.scalars),note:'Pinned Python/production semantics are the reference, not a production bug.'};break}}
 const parity={seed:20261025,max_tape_length:48,method:'10000 seeded mixed random and directed-prefix tapes plus all real tapes; compare at every step, interpreter/compiled/chart/Python; exact constructor projection; injective string interning; absent hd -> 0',counts:counters,divergences,sabotage}
 writeFileSync(`${out}/parity.json`,JSON.stringify(parity,null,2))
 const totals:any={};for(const t of real)for(const f of t.recorded_findings){const key=`law${f.law}:${f.code}:${f.severity}`;totals[key]=(totals[key]??0)+1}
-writeFileSync(`${out}/replay.json`,JSON.stringify({method:'175 frozen histories; core/watch.ts applied to all 15 faithful claims (last 3 via observed-item/pointwise-board projections). Evidence diagnostic verdicts are compared separately; theorem watches cannot diagnose refused real actions or omitted observational metadata.',items:real.length,steps:counters.real.steps,refused_steps:counters.real.refusals,parity_divergences:divergences.filter(d=>d.kind==='real'),theorem_watch_violations:watchCounts,stored_findings:totals,traces:real},null,2))
+const perLaw=names.map((law,i)=>({law,bend_group:[1,2,2,2,3,3,4,4,5,5,5,6,7,7,7][i],theorem_watch_violations:watchCounts[law]??0,observed_verdict:i>=12?'indeterminate: availability and cross-item targeting not recorded':'transition theorem held; recorded evidence diagnostics compared below',stored_group_findings:real.flatMap(t=>t.recorded_findings).filter(f=>f.law===[1,2,2,2,3,3,4,4,5,5,5,6,7,7,7][i])}))
+writeFileSync(`${out}/replay.json`,JSON.stringify({per_law:perLaw,method:'175 frozen histories; core/watch.ts applied to all 15 faithful claims (last 3 via observed-item/pointwise-board projections). Evidence diagnostic verdicts are compared separately; theorem watches cannot diagnose refused real actions or omitted observational metadata.',items:real.length,steps:counters.real.steps,refused_steps:counters.real.refusals,parity_divergences:divergences.filter(d=>d.kind==='real'),theorem_watch_violations:watchCounts,stored_findings:totals,traces:real},null,2))
 console.log(JSON.stringify({counts:counters,watchCounts,sabotageDetected:!!sabotage,stored_findings:totals,phase_disagreements:real.filter(t=>!t.phase_agrees).length}))

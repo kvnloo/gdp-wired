@@ -15,8 +15,9 @@ for(const e of [...bendLaws,...extras]){
  const broken=c.broken.map((b:any)=>{const bv=prove(b);let w:any=e.witness?.();
  if(!w?.breaks){const r=runRule(b.rule,(b.steps?.length?[]:b.laws.slice(-1)),{trials:100,depth:12,bound:3},b.steps);w={breaks:!!r.violation,detail:r}}
  if(!w?.breaks&&e.n===0){let trace=happy;if(e.law_id==='acceptance_precedes_merge_any_distance')trace=[...happy.slice(0,7),{ev:9,role:7,actor:2,sha:0,rsha:0,passed:false}];if(e.law_id==='never_merged_twice')trace=[...happy,...happy];w=violation(b,{},trace)}
- return {name:b.name,refused:!bv.proven,verdict:bv,witness:w}})
- const row={n:e.n,law:e.law_id,encoding:e.encoding,proven:v.proven,checked:v.checked,verdict:v,ms,from_any:any,from_any_original:e.n>0?prove({rule:c.rule,...{laws:claim(e.n-1,c.rule).laws??[],steps:claim(e.n-1,c.rule).steps??[]}},'any'):any,assumes:!!any.assumes,runs,builders,broken,ok:v.proven&&v.checked&&!runs.violation&&!runs.mismatch&&!builders.failure&&broken.every((b:any)=>b.refused&&b.witness?.breaks)}
+ const builders=b.rule.crossCheck(b.laws,b.steps??[],{trials:15,depth:12,bound:3})
+ return {name:b.name,refused:!bv.proven,verdict:bv,witness:w,builders}})
+ const row={n:e.n,law:e.law_id,encoding:e.encoding,proven:v.proven,checked:v.checked,verdict:v,ms,from_any:any,from_any_original:e.n>0?prove({rule:c.rule,...{laws:claim(e.n-1,c.rule).laws??[],steps:claim(e.n-1,c.rule).steps??[]}},'any'):any,assumes:!!any.assumes,runs,builders,broken,ok:v.proven&&v.checked&&!runs.violation&&!runs.mismatch&&!builders.failure&&broken.every((b:any)=>b.refused&&b.witness?.breaks&&!b.builders.failure)}
  rows.push(row);console.log('done',e.law_id,row.ok,ms)
  }catch(err){rows.push({n:e.n,law:e.law_id,ok:false,error:String(err)});console.log(String(err))}
  writeFileSync(out,JSON.stringify({rows},null,2))
