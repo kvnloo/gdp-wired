@@ -51,6 +51,7 @@ function replace<T>(value: T, path: Edit['path'], after: unknown): T {
   if (!value || typeof value !== 'object') throw new Error('invalid mutation path')
   return Object.fromEntries(Object.entries(value).map(([k, x]) => [k, k === head ? replace(x, tail, after) : x])) as T
 }
+export function applyEdit(machine: Machine, edit: Edit): Machine { return replace(machine, edit.path, edit.after) }
 export function machineEdits(m: Machine): Edit[] {
   const out: Edit[] = []
   const root = (t: E | C, path: Edit['path']) => out.push(...edits(t, path))
