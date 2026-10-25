@@ -63,7 +63,7 @@ export function modelCase(id:string,bug?:Bug):any {
  return {kind:'rule',rule:r,laws:[],steps:[s]}
 }
 function entry(n:number,id:string,line:number,bug:string):Entry{
- return {n,law_id:id,src:`${root}:${line}`,bend:id,says:id,fns:'step/run/lstep/holds/peff/pstep',kind:id.includes('is_placed')?'law':id==='overdue_needs_kevin'||id==='write_needs_lease'?'decide':id==='input_needs_fresh_look'?'k-step law':'step law',encoding:'exact',case:()=>{
+ return {n,law_id:id,src:`${root}:${line}`,bend:id,says:id,fns:'step/run/lstep/holds/peff/pstep',kind:id.includes('is_placed')?'law':id==='overdue_needs_kevin'||id==='write_needs_lease'?'decide':id==='input_needs_fresh_look'?'k-step law':'step law',encoding:(id.startsWith('lease_')||id.startsWith('install_')||id.startsWith('input_')||id==='write_needs_lease')?'exact':'abstracted',case:()=>{
   const good=modelCase(id),bad=modelCase(id,bug)
   return good.kind==='decisions'?decisionCase(id,id,good.decisions,[{name:bug,why:bug,decision:bad.decisions[0]}]):machineCase(id,id,good.rule,good.laws,[{name:bug,why:bug,rule:bad.rule,laws:bad.laws,steps:bad.steps}],{steps:good.steps,depth:18,bound:4})
  }}
