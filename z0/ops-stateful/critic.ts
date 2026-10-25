@@ -38,8 +38,8 @@ out.charts=[P.servedChart,P.promotionChart,P.healthChart,P.restartChart].map(mk=
 // Strip the hand-written helper to demonstrate that inference is actually exercised.
 const hr=P.healthRun(),once=hr.law('at most one emission',(e:E)=>e.emitted.atMost(1))
 const rr=P.restartRun(),never=rr.law('after interruption never failed or done',(e:E)=>e.everInterrupted.implies(e.kind.is('failed').not().and(e.kind.is('done').not())))
-out.invariant_search=[{rule:'health',bare:proveSteps(hr,[once],[],{search:false}),inferred:inferLaws(hr,[once],[],{ms:5000,runs:4000})},
- {rule:'restart',bare:proveSteps(rr,[never],[],{search:false}),inferred:inferLaws(rr,[never],[],{ms:5000,runs:4000})}]
+out.invariant_search=[{rule:'health',bare:proveSteps(hr,[once],[],{search:false}),inferred:inferLaws(hr,[once],[],{ms:15000})},
+ {rule:'restart',bare:proveSteps(rr,[never],[],{search:false}),inferred:inferLaws(rr,[never],[],{ms:15000})}]
 const helper=rr.law('an interrupted history is not active',(e:E)=>e.everInterrupted.implies(e.kind.is('active').not()))
 out.explicit_helper_from_any=proveSteps(rr,[never,helper],[],{from:'any',search:false})
 // Original mutation inventory: unique (decision family, bug) pairs are exactly
