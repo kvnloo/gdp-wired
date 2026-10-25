@@ -45,8 +45,8 @@ function M(id: string, mode:'snapshot'|'atomic', step: keyof typeof lifeSteps, b
     case:() => {const r=P.lifecycle(mode), b=P.lifecycle(mode,bug); return machineCase(id,id,r,[],[{name:bug,why:id,rule:b,laws:[],steps:[lifeSteps[step](b)]}],{steps:[lifeSteps[step](r)],bound:3,depth:16})}}
 }
 export const extras: Entry[] = [
-  D(0,'auth_retained_general_n',534,P.auth,(e:E)=>[e.known,e.before.eq(e.after)],(o:E)=>o.ok.eq(1),'always refuse auth','Generalize 9 to every natural credential count'),
-  D(0,'auth_increase_accepted',534,P.auth,(e:E)=>[e.known,e.before.atMost(e.after)],(o:E)=>o.ok.eq(1),'always refuse auth','All known nondecreasing counts, not only equal counts'),
+  D(0,'auth_retained_general_n',534,P.auth,(e:E)=>[e.known,e.before.eq(e.after)],(o:E)=>o.ok.eq(1),'auth n9 only','Generalize 9 to every natural credential count'),
+  D(0,'auth_increase_accepted',534,P.auth,(e:E)=>[e.known,e.before.atMost(e.after)],(o:E)=>o.ok.eq(1),'auth equality only','All known nondecreasing counts, not only equal counts'),
   D(0,'holder_health_requires_complete',503,P.holders,(e:E,o:E)=>o.ok.eq(1),(_o:E,e:E)=>e.complete,'unknown scan declared healthy','Completeness necessity absent from the named ghost law'),
   {n:0,law_id:'receipt_never_authorizes',bend:'receipt_never_authorizes',src:source+'src/z0int/fsm/sqlite_guard.py:168',says:'requirements are not authority',fns:'sqlite_decision',kind:'decide',encoding:'abstracted',
     case:()=>decisionCase('receipt_never_authorizes','read only',[P.receipt().law('receipt_never_authorizes',()=>[],(o:E)=>o.authorization.eq(0))],[{name:'authorizes',why:'evidence is not authority',decision:P.receipt('authorizes').law('receipt_never_authorizes',()=>[],(o:E)=>o.authorization.eq(0))}])},

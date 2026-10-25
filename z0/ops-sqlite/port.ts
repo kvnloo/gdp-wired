@@ -6,10 +6,11 @@ type E = any
 export const MUTANTS = ['ignore holders', 'ignore scan completeness', 'ignore ghosts', 'lose credentials',
   'unknown baseline earns credit', 'stale inode removes sidecars', 'always refuse replacement',
   'always refuse health', 'always refuse auth', 'always refuse sidecars', 'unknown scan declared healthy'] as const
-export type Bug = typeof MUTANTS[number] | undefined
+export const AUTH_GAP_MUTANTS = ['auth equality only', 'auth n9 only'] as const
+export type Bug = typeof MUTANTS[number] | typeof AUTH_GAP_MUTANTS[number] | undefined
 export const replaceCond = (complete: E, empty: E, bug?: Bug) => bug === 'ignore holders' ? complete : bug === 'ignore scan completeness' ? empty : bug === 'always refuse replacement' ? no : complete.and(empty)
 export const holdersCond = (complete: E, ghosts: E, bug?: Bug) => bug === 'ignore ghosts' ? complete : bug === 'unknown scan declared healthy' ? ghosts.not() : bug === 'always refuse health' ? no : complete.and(ghosts.not())
-export const authCond = (known: E, before: E, after: E, bug?: Bug) => bug === 'lose credentials' ? known : bug === 'unknown baseline earns credit' ? before.atMost(after) : bug === 'always refuse auth' ? no : known.and(before.atMost(after))
+export const authCond = (known: E, before: E, after: E, bug?: Bug) => bug === 'lose credentials' ? known : bug === 'unknown baseline earns credit' ? before.atMost(after) : bug === 'always refuse auth' ? no : bug === 'auth equality only' ? known.and(before.eq(after)) : bug === 'auth n9 only' ? known.and(before.eq(9),after.eq(9)) : known.and(before.atMost(after))
 export const sidecarCond = (current: E, bug?: Bug) => bug === 'stale inode removes sidecars' ? yes : bug === 'always refuse sidecars' ? no : current
 export const replace = (bug?: Bug) => fun('sqlite_replace_allows').inputs({complete: bool, empty: bool}).returns(({complete, empty}) => ({ok: count(replaceCond(complete, empty, bug))}))
 export const holders = (bug?: Bug) => fun('sqlite_holders_ok').inputs({complete: bool, ghosts: bool}).returns(({complete, ghosts}) => ({ok: count(holdersCond(complete, ghosts, bug))}))

@@ -68,6 +68,11 @@ def main():
                                                           (None, 0, 1, 9, 10), operations, (None, 0, 1, 2, 3)):
         inputs = dict(complete=complete, holders=hs, before=before, after=after, operation=op, actor_pid=actor, db='/store')
         emit('guard.finite', inputs, s.sqlite_decision(**inputs))
+    # Both local decisions pass when the caller reuses an old baseline. This is
+    # a synthetic sequence, not incident history, and no IO is involved.
+    for i, after in enumerate((10, 9)):
+        inputs = dict(complete=True, holders=[], before=9, after=after, operation='recreate', actor_pid=None, db='/store')
+        emit('guard.stale-baseline', inputs, s.sqlite_decision(**inputs), sequence_index=i)
     for _ in range(1000):
         inputs = dict(complete=rng.choice((False, True)), holders=[rng.choice(universe) for _ in range(rng.randrange(13))],
                       before=rng.choice((None, 0, 1, 9, 10)), after=rng.choice((None, 0, 1, 9, 10)),
