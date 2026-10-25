@@ -19,7 +19,7 @@ export const coder = (r:Env) => r.eq(1).or(r.eq(2))
 const operator = (r:Env) => r.eq(7).or(r.eq(1))
 const steward = (r:Env) => r.eq(0).or(r.eq(1))
 export const bugs = ['merge-before-accept','self-verify','any-accept','unbound-receipt','stale-deploy','ignore-drift','lose-resume-head','free-coder','hold-all','owner-fires'] as const
-export type Bug = typeof bugs[number] | 'self-integrate' | 'no-resume' | 'no-abandon' | 'board-broadcast' | 'reopen-merged' | undefined
+export type Bug = typeof bugs[number] | 'no-opus-resume' | 'self-integrate' | 'no-resume' | 'no-abandon' | 'board-broadcast' | 'reopen-merged' | undefined
 const truth = (b:boolean) => b ? yes:no
 export type Edge = {from:string[],to:string,event:string,guard:(e:Env)=>Env,set?:(e:Env)=>Env}
 export function table(bug?:Bug):Edge[] {
@@ -45,7 +45,7 @@ export function table(bug?:Bug):Edge[] {
  edge('Blocked','Unblock','Implementing',e=>steward(e.role)),
  edge('Claimed','Interrupt','Interrupted',()=>yes,()=>({hd:0})),
  edge(['Implementing','Verifying'],'Interrupt','Interrupted'),
- edge('Interrupted','Resume','Implementing',e=>bug==='no-resume'?no:code(e.role),e=>({au:e.actor,ar:e.role,hd:bug==='lose-resume-head'?0:e.hd})),
+ edge('Interrupted','Resume','Implementing',e=>bug==='no-resume'?no:bug==='no-opus-resume'?e.role.eq(2):code(e.role),e=>({au:e.actor,ar:e.role,hd:bug==='lose-resume-head'?0:e.hd})),
  edge(['Proposed','Claimed','Blocked','Interrupted'],'Abandon','Abandoned',e=>bug==='no-abandon'?no:steward(e.role)),
  ]
  if(bug==='merge-before-accept')out.push(edge('Deployed','Merge','Merged',()=>yes,e=>({ap:e.actor,apr:e.role})))
