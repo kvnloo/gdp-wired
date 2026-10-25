@@ -59,8 +59,8 @@ export const placementEvidence = () => fun('placement typed adapter').inputs({av
   .returns((e: Env) => ({out: when(every(['available', 'agent', 'scoped'].map(f => known(e[f]))), placementTerm({available: affirmed(e.available), agent: affirmed(e.agent), scoped: affirmed(e.scoped)}), 0)}))
 // Stateless decisions lifted to observation streams solely to exercise from:any.
 // Every observation overwrites the output; arbitrary previous status is irrelevant.
-export const observe = (id: string) => rule(`observe ${id}`).inputs(Object.fromEntries(fields[id]!.map(f => [f, evidence])))
-  .state({out: 0}).step((e: Env) => ({out: rootTerm(id)(e)}))
+export const observe = (id: string, bug = '') => rule(`observe ${id}`).inputs(Object.fromEntries(fields[id]!.map(f => [f, evidence])))
+  .state({out: 0}).step((e: Env) => ({out: bug === 'retain previous pass' ? when(e.out.eq(1), 1, rootTerm(id)(e)) : rootTerm(id)(e)}))
 // Run-level extension of artifact_leases.py:64-73. Snapshot identity, sources,
 // containment etc. stay explicit bits. No deletion is modeled or authorized.
 export const leaseObservation = (bug = '') => rule('lease observation stream')

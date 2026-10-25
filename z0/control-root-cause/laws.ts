@@ -54,6 +54,9 @@ for (const [id,fs] of Object.entries(P.fields)) {
    .returns((e: Env)=>({out:when(bug ? e.metadata.eq(1) : e.metadata.lt(0),1,P.rootTerm(id)(e))}))
  const law = (r: any) => r.relate(`${id}_metadata_noninterference`,(a: Env,b: Env)=>P.every(fs.map(f=>a[f].eq(b[f]))),(x: Env,y: Env)=>x.out.eq(y.out))
  extras.push({n:0,law_id:`${id}_metadata_noninterference`,src:'src/z0int/fsm/root_cause.py:18-41',bend:`${id}_metadata_noninterference`,says:'unread metadata cannot change the decision',fns:id,kind:'relate',encoding:'exact',case:()=>decisionCase(`${id}_metadata_noninterference`,'two calls, identical relevant evidence, arbitrary metadata',[law(mk())],[{name:'metadata changes verdict',why:'noninterference',decision:law(mk('read metadata'))}])})
+ const name = `${id}_missing_after_pass_never_pass`
+ const ss = (r: any) => [r.stepLaw(name,(e: Env,a: Env)=>P.every(fs.map(f=>P.known(e[f]))).not().implies(a.out.eq(1).not()))]
+ extras.push({n:0,law_id:name,src:'bend/root_cause_fsm/root.bend:75-88',bend:name,says:'missing current evidence cannot inherit an earlier pass',fns:id,kind:'step law',encoding:'exact',case:()=>machineCase(name,name,P.observe(id),[],[{name:'retain previous pass',why:name,rule:P.observe(id,'retain previous pass'),laws:[],steps:ss(P.observe(id,'retain previous pass'))}],{steps:ss(P.observe(id)),depth:8})})
 }
 extras.push(D(0,'lease_eligibility_iff_all','bend/artifact_lease_fsm/lease.bend:5',P.lease,none,(o: Env,e: Env)=>iff(o.out.eq(1),P.every(P.leaseFields.map(f=>e[f]))),'unexpired'))
 extras.push(D(0,'placement_general_form','bend/placement_fsm/placement.bend:9',P.placement,none,(o: Env,e: Env)=>iff(o.out.eq(0),e.available.not()).and(iff(o.out.eq(2),e.available.and(e.agent,e.scoped.not()))),'unavailable_pass'))

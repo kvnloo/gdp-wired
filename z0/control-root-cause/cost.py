@@ -1,0 +1,56 @@
+"""MBP-only comparison; preserve failures, never invent Bend timings.
+
+Whole family command median / law count is an amortized cost, NOT an isolated
+per-law measurement. CPU clock/native checker is not GPU execution throughput.
+"""
+import argparse
+import json
+from pathlib import Path
+import shutil
+import statistics
+import subprocess
+import time
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--source', type=Path, required=True)
+    ap.add_argument('--battery', type=Path, required=True)
+    ap.add_argument('--out', type=Path, required=True)
+    args = ap.parse_args()
+    battery = json.loads(args.battery.read_text())
+    bend = shutil.which('bend') or str(Path.home() / '.bend/bin/bend')
+    families = []
+    for name in ('root_cause_fsm', 'artifact_lease_fsm', 'placement_fsm'):
+        directory = args.source / 'bend' / name
+        laws = sum(line.startswith('law ') for line in (directory / 'LAWS.bend').read_text().splitlines())
+        lines = {f: len((directory / f).read_text().splitlines()) for f in ('LAWS.bend', 'PROOF.bend')}
+        runs = []
+        for _ in range(3):
+            t = time.perf_counter()
+            try:
+                p = subprocess.run([bend, 'PROOF.bend'], cwd=directory, text=True, capture_output=True, timeout=180)
+                run = dict(ms=(time.perf_counter()-t)*1000, returncode=p.returncode, output=p.stdout+p.stderr, proofs_check=p.returncode == 0 and 'ALL PROOFS CHECK' in p.stdout+p.stderr)
+            except (OSError, subprocess.TimeoutExpired) as e:
+                run = dict(ms=(time.perf_counter()-t)*1000, proofs_check=False, error=str(e))
+            runs.append(run)
+            if not run['proofs_check']:
+                break
+        median = statistics.median(r['ms'] for r in runs) if all(r['proofs_check'] for r in runs) else None
+        families.append(dict(family=name, laws=laws, lines=lines, runs=runs, median_ms=median, amortized_ms_per_law=median/laws if median is not None else None))
+    gdp_lines = len(Path('z0/control-root-cause/laws.ts').read_text().splitlines())
+    gdp_times = [r['ms'] for r in battery['rows'] if r['n'] > 0]
+    result = dict(families=families, bend=str(bend), gdp_laws_ts_lines=gdp_lines,
+                  bend_laws_plus_proof_lines=sum(sum(f['lines'].values()) for f in families),
+                  gdp_proof_median_ms_per_law=statistics.median(gdp_times), gdp_proof_sum_ms=sum(gdp_times),
+                  gdp_battery_ms=battery['totalMs'],
+                  limitations=['Bend native proof-check command includes startup; GDP proof times are warm in-process medians of five.',
+                               'Bend cost is remeasured here; historical per-law timing receipts were not located in the assigned evidence directories.',
+                               'This is not a GPU runtime benchmark, a full --verdict Lean rerun, or a billable-token comparison.',
+                               'laws.ts includes metadata, helpers and extras; line counts are physical lines, not normalized source complexity.'])
+    args.out.write_text(json.dumps(result, indent=2))
+    print(json.dumps(result))
+
+
+if __name__ == '__main__':
+    main()
