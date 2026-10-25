@@ -68,7 +68,7 @@ export const leaseObservation = (bug = '') => rule('lease observation stream')
   .inputs({now: nat, allowlisted: bool, known_nonlive: bool, no_symlink: bool, archive_ready: bool})
   .state({eligible: 0})
   .step((e: Env) => {
-    const fresh = leaseTerm({...e, expired: e.now.atLeast(e.created.plus(e.ttl))})
+    const fresh = leaseTerm({...e, expired: bug === 'ignore expiry' ? yes : e.now.atLeast(e.created.plus(e.ttl))})
     return {eligible: bug === 'cache previous pass' ? when(e.eligible.eq(1), 1, fresh) : fresh}
   })
 // This chart describes recomputing a report, not a cleanup actor or lifecycle.
