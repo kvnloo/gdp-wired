@@ -53,6 +53,14 @@ bun z0/tools/aggregate.ts --root /mnt/zer0models/workspace/zer0/data/operations/
 
 Reads immediate `*/battery*.json` and `*/findings.jsonl`; writes `MATRIX.md` and `matrix.json`. Supports legacy array batteries and shared `{rows,...}` batteries. Missing families are unknown, malformed files/duplicate finding IDs are reported, findings are counted by class and severity without adjudicating them. Native `battery.json` is canonical; auxiliary remeasurements remain separate datasets, never silently added to the same total. With multiple noncanonical datasets (e.g. tools calibration) no ambiguous combined score is invented. Timings not recorded in inputs remain null.
 
+## Hand-checked survivors
+
+```sh
+bun z0/tools/survivors.ts --battery battery-domains.json --json survivors.json
+```
+
+Run via fleet-build with the battery as a private `--input FILE:domains-input.json`. This reproduces five source-inspected survivors: three concrete observable law-suite gaps (quota operation guard, autoscaler identity, lease operation guard) and two exact natural-number predicate equivalences. It requires the referenced rows to have survived, checks legal explicit traces against every stated law, and kernel-checks the universal `x=0 iff x<=0` lemma for the two equivalent sites. It does not upgrade other likely-equivalent rows to proven equivalence.
+
 ## Verification
 
 ```sh

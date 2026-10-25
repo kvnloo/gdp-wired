@@ -6,7 +6,7 @@ import type {Machine} from '../../core/machine.ts'
 import {substE} from '../../kernel/kernel.ts'
 
 type AnyFun = NonNullable<ReturnType<typeof funOf>>
-type Output = (env: never) => Record<string, unknown>
+type Output = (env: object) => Record<string, unknown>
 type Spec = {kind: 'law' | 'relate', args: unknown[], output: Output, fun: AnyFun}
 const outputs = new WeakMap<object, Output>(), specs = new WeakMap<Decision, Spec>()
 let enabled = false
@@ -15,11 +15,11 @@ export function enableDecisionCapture(): void {
   if (enabled) return
   enabled = true
   const returns = Fun.prototype.returns, law = Fun.prototype.law, relate = Fun.prototype.relate
-  Fun.prototype.returns = function (...args: Parameters<typeof returns>) {
+  Object.defineProperty(Fun.prototype, 'returns', {configurable: true, writable: true, value: function (this: AnyFun, ...args: Parameters<typeof returns>) {
     const f = Reflect.apply(returns, this, args)
     outputs.set(f, args[0] as Output)
     return f
-  }
+  }})
   for (const kind of ['law', 'relate'] as const) {
     const method = kind === 'law' ? law : relate
     // Public prototype boundary: the callbacks are retained without interpreting their types.
@@ -39,7 +39,7 @@ export function decisionMutation(d: Decision, machine: Machine, path: (string | 
   if (!name.startsWith('out.') || key.includes('.') || !raw) throw new Error('unsupported structured output')
   // Fun's observable return is one step from init; identity means its initial output, not a free law variable.
   const e = substE(raw, {vars: machine.state, maps: {}, flags: {}})
-  const f = spec.fun.returns((env: never) => {
+  const f = spec.fun.returns((env: object) => {
     const out = spec.output(env), value = out[key]
     if (value instanceof Cond) {
       if (e.op === 'const' && (e.value === 0 || e.value === 1)) return {...out, [key]: new Cond({op: e.value ? 'and' : 'or', xs: []})} as never
