@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.json",
   "include": ["./*.ts"],
-  "exclude": []
+  "exclude": ["./mutate-tool.ts", "./decisions.ts"]
 }
