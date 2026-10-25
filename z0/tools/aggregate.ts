@@ -7,7 +7,7 @@ const num = (v: unknown): number | null => typeof v === 'number' && Number.isFin
 const tally = (xs: Record<string, unknown>[], key: string) => Object.fromEntries([...new Set(xs.map(x => String(x[key] ?? 'unknown')))].sort().map(k => [k, xs.filter(x => String(x[key] ?? 'unknown') === k).length]))
 export function aggregate(root: string) {
   const errors: string[] = [], families = []
-  const directories = existsSync(root) ? readdirSync(root, {withFileTypes: true}).filter(d => d.isDirectory()).map(d => d.name) : []
+  const directories = existsSync(root) ? readdirSync(root, {withFileTypes: true}).filter(d => d.isDirectory() && readdirSync(join(root, d.name)).some(f => /^battery.*\.json$/.test(f) || f === 'findings.jsonl')).map(d => d.name) : []
   for (const family of [...new Set([...expected, ...directories])].sort()) {
     const dir = join(root, family), datasets = [], findings: Record<string, unknown>[] = [], seen = new Set<string>()
     if (existsSync(dir)) for (const file of readdirSync(dir).filter(f => /^battery.*\.json$/.test(f)).sort()) {
@@ -52,6 +52,8 @@ export function markdown(result: ReturnType<typeof aggregate>) {
   for (const f of result.families) {
     const d = f.selected, m = d?.mutation
     lines.push(`| ${esc(f.family)} | ${f.status} | ${d?.entries ?? '—'} | ${d?.proven_checked ?? '—'} | ${d?.ok ?? '—'} | ${f.findings} | ${m ? [m.killed,m.survived,m.unknown,m.likely_equivalent].join('/') : '—'} | ${m && typeof m.mutation_score === 'number' ? m.mutation_score.toFixed(4) : '—'} | ${d?.elapsed_ms?.toFixed(1) ?? '—'} |`)
+  }
+  for (const f of result.families) {
     if (f.datasets.length || f.findings) lines.push('', `### ${esc(f.family)} datasets and findings`, '', ...f.datasets.map(d => `- ${d.file}: ${d.proven_checked}/${d.entries} proven & checked; ${d.ok} triple-check; complete=${d.complete ?? 'not recorded'}; mutation=${JSON.stringify(d.mutation)}; elapsed_ms=${d.elapsed_ms ?? 'not recorded'}.`), `- Classes: ${JSON.stringify(f.by_class)}`, `- Severities: ${JSON.stringify(f.by_severity)}`, '')
   }
   if (result.errors.length) lines.push('', '## Input errors', ...result.errors.map(e => `- ${esc(e)}`))

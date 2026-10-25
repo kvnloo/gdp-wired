@@ -121,7 +121,8 @@ export function mutateCase(c: Case, options: Partial<Options> = {}) {
   const candidates = machineEdits(source)
   for (const [index, edit] of candidates.slice(0, opts.cap).entries()) {
     const t0 = performance.now(), mutant = replace(source, edit.path, edit.after), id = `M${String(index + 1).padStart(4, '0')}`
-    const row: MutantRow = {id, edit, status: 'unknown', likely_equivalent: false, observations: {runs: 0, steps: 0, differs: false}, laws: {}, ms: 0}
+    const names = c.kind === 'rule' ? [...c.laws, ...(c.steps ?? [])].map(l => l.name) : c.decisions.map(d => d.name)
+    const row: MutantRow = {id, edit, status: 'unknown', likely_equivalent: false, observations: {runs: 0, steps: 0, differs: false}, laws: Object.fromEntries(names.map(name => [name, {proven: false, checked: false, killed: false, error: 'not evaluated'}])), ms: 0}
     try {
       if (c.kind === 'rule') {
         const prove = (laws: typeof c.laws, steps: NonNullable<typeof c.steps>) => withDeadline(clock() + 1000, () => proveStepLaws(mutant, laws, steps))

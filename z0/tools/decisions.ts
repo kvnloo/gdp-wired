@@ -3,6 +3,7 @@
 // goal would also change equal constants/inputs in the specification and is unsound.
 import {Cond, Fun, Term, type Decision, funOf} from '../../core/dsl.ts'
 import type {Machine} from '../../core/machine.ts'
+import {substE} from '../../kernel/kernel.ts'
 
 type AnyFun = NonNullable<ReturnType<typeof funOf>>
 type Output = (env: never) => Record<string, unknown>
@@ -34,13 +35,17 @@ export function decisionMutation(d: Decision, machine: Machine, path: (string | 
   const spec = specs.get(d)
   if (!spec) throw new Error('unsupported decision: no captured public Fun callbacks (bare decide or prebuilt function)')
   if (path[0] !== 'step' || path[1] !== 'state' || typeof path[2] !== 'string') throw new Error('unsupported decision assumption/flag edit')
-  const name = path[2], key = name.slice('out.'.length), e = machine.step.state?.[name]
-  if (!name.startsWith('out.') || key.includes('.') || !e) throw new Error('unsupported structured output')
+  const name = path[2], key = name.slice('out.'.length), raw = machine.step.state?.[name]
+  if (!name.startsWith('out.') || key.includes('.') || !raw) throw new Error('unsupported structured output')
+  // Fun's observable return is one step from init; identity means its initial output, not a free law variable.
+  const e = substE(raw, {vars: machine.state, maps: {}, flags: {}})
   const f = spec.fun.returns((env: never) => {
     const out = spec.output(env), value = out[key]
     if (value instanceof Cond) {
-      if (e.op !== 'if' || e.then.op !== 'const' || e.then.value !== 1 || e.else.op !== 'const' || e.else.value !== 0) throw new Error('mutation leaves boolean output encoding')
-      return {...out, [key]: new Cond(e.c)} as never
+      if (e.op === 'const' && (e.value === 0 || e.value === 1)) return {...out, [key]: new Cond({op: e.value ? 'and' : 'or', xs: []})} as never
+      if (e.op !== 'if' || e.then.op !== 'const' || e.else.op !== 'const' || ![0,1].includes(e.then.value) || ![0,1].includes(e.else.value)) throw new Error('mutation leaves boolean output encoding')
+      const condition = e.then.value === e.else.value ? {op: e.then.value ? 'and' as const : 'or' as const, xs: []} : e.then.value ? e.c : {op: 'not' as const, x: e.c}
+      return {...out, [key]: new Cond(condition)} as never
     }
     if (!(value instanceof Term) && typeof value !== 'number') throw new Error('unsupported non-scalar return kind')
     return {...out, [key]: new Term(e)} as never
