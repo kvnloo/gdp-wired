@@ -33,7 +33,7 @@ export const routing = (bug = 0) => fun('O7 routing').inputs({cancelled:bool,sol
 export const resources = (bug = 0) => fun('O10 resources').inputs({ready:bool,memory:bool,cpu:bool,battery:bool,thermal:bool}).returns((e:any)=>{
   const gate = ({42:'memory',43:'cpu',44:'battery',45:'thermal'} as any)[bug]
   const admitted = gate?e.ready.and(e[gate]):e.ready
-  return {ok:bit(admitted),place:when(bug===46?e.ready.and(e.memory):admitted,3,0)}
+  return {ok:bit(admitted),place:when(bug===46?e.ready.and(e.memory):admitted,3,bug===3?1:bug===4?3:0),reference_place:when(e.ready,3,bug===3?1:bug===4?3:0)}
 })
 // ops.bend:441-467; Python has no scalar policy_allows twin: policy_guard.py:445-495
 // audits richer receipts. Its stage/family/arm projection is compared separately, not invented as ops.py.

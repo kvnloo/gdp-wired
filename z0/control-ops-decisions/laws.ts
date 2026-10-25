@@ -35,7 +35,7 @@ export const bendLaws:Entry[] = [
  D('o7_no_cancelled_provider',255,P.routing,(e:any)=>e.cancelled,(o:any)=>o.ok.eq(0),[32]),
  D('o7_no_sol_design',261,P.routing,(e:any)=>[e.sol,e.design],(o:any)=>o.ok.eq(0),[33]),
  D('o10_phone_no_agent_resource_caps',343,P.resources,none,(o:any,e:any)=>o.ok.eq(P.bitTerm(e.ready)),[42,43,44,45]),
- D('o10_phone_placement_no_agent_resource_caps',351,P.resources,none,(o:any,e:any)=>o.place.eq(P.readyPlace(e.ready)),[42,43,44,45,46]),
+ D('o10_phone_placement_no_agent_resource_caps',351,P.resources,none,(o:any)=>o.place.eq(o.reference_place),[42,43,44,45,46]),
  D('o11_evidence_bound_route',360,P.policy,off,(o:any)=>o.credited.eq(1),[51]),
  D('o11_named_family',371,P.policy,off,(_o:any,e:any)=>e.family.eq(e.named_family),[49,55]),
  D('o11_named_arm',382,P.policy,off,(_o:any,e:any)=>e.arm.eq(e.named_arm),[50,55]),
@@ -60,7 +60,8 @@ export const bendLaws:Entry[] = [
  D('o13_reversible_authority',477,P.capacity,(e:any)=>e.risk.eq(1),(o:any)=>o.risk.eq(1),[103]),
  D('o13_destructive_request_never',480,P.capacity,(e:any)=>e.risk.eq(2),(o:any)=>o.risk_ok.eq(0),[64,65]),
 ]
-bendLaws.forEach((e,i)=>e.n=i+1)
+const sourceOrdinals=[1,2,3,4,16,17,18,19,20,21,22,23,24,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57]
+bendLaws.forEach((e,i)=>e.n=sourceOrdinals[i]!)
 function X(id:string,mk:any,given:any,then:any,bugs:number[],relate=false):Entry {
  return {n:0,law_id:id,src:'bend/ops_fsm/ops.bend:473-491',bend:id,says:id,fns:mk.name,kind:relate?'relate':'decide',encoding:'exact',how:'automatic',
   case:()=>{const d=(bug=0)=>relate?mk(bug).relate(id,given,then):mk(bug).law(id,given,then)

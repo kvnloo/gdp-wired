@@ -19,7 +19,7 @@ for(const mutant of catalog) {
    continue
   }
   const s=specs[e.law_id]!
-  if(!target||s.mk!==target.mk){cells.push({law:e.law_id,status:'unaffected'});continue}
+  if((!target||s.mk!==target.mk)&&!([3,4].includes(mutant.id)&&e.law_id.startsWith('o10_'))){cells.push({law:e.law_id,status:'unaffected'});continue}
   const d=s.mk(mutant.id).law(e.law_id,s.given,s.then),v=proveDecision(d)
   let witness:any=null
   if(!v.proven) {
