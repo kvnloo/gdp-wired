@@ -15,7 +15,7 @@ bun z0/tools/battery.ts --laws z0/FAMILY/laws.ts --json out/battery.json \
   [--mutants 200] [--seed 1] [--trials 200] [--depth 12] [--bound 4] [--strict]
 ```
 
-Imports `bendLaws` and `extras` (Entry from `z0/entry.ts`). Optional `family` export names the dataset. Five proof timings (median), all accepted checked proofs, interpreter/generated-JS runs, builder callback cross-checks, and each handwritten broken variant refused **and** broken by a concrete run/draw are recorded per Entry. The Entry witness fallback is accepted only for a single broken variant. `from_any` re-proves rule cases with `{from:'any'}` and retains `assumes`. This is the existing example harness's TypeScript/kernel checks, **not an executed Lean check**. Harness draws use its fixed case-name seed; `--seed` controls mutation probes.
+Imports `bendLaws` and `extras` (Entry from `z0/entry.ts`). Run tools and laws from the **same checkout** (integrate/cherry-pick `z0/tools/` first); loading a sibling worktree's laws creates a second DSL module instance whose public Fun callbacks are not captured by this process. Optional `family` export names the dataset. Five proof timings (median), all accepted checked proofs, interpreter/generated-JS runs, builder callback cross-checks, and each handwritten broken variant refused **and** broken by a concrete run/draw are recorded per Entry. The Entry witness fallback is accepted only for a single broken variant. `from_any` re-proves rule cases with `{from:'any'}` and retains `assumes`. This is the existing example harness's TypeScript/kernel checks, **not an executed Lean check**. Harness draws use its fixed case-name seed; `--seed` controls mutation probes.
 
 Identical compiled implementations are grouped; all their Entry laws (Bend plus extras) are combined before mutation. Rows link to `mutation_case`; each `mutations[]` group names its `law_ids`. Therefore a rule referenced by 10 laws contributes one set of mutants, not 10 duplicate denominators. Groups are per compiled implementation, not functions that merely look semantically similar. A name collision with differing law terms is an explicit error. `--mutants 0` disables mutation. The JSON is checkpointed after each Entry/group; `complete:false` means an interrupted partial measurement. Default exits 0 with `ok` per Entry; `--strict` exits 1 if an Entry is not ok. Unknown mutants do not fail the original-rule triple check.
 
@@ -65,7 +65,7 @@ Run via fleet-build with the battery as a private `--input FILE:domains-input.js
 
 ```sh
 bun test z0/tools
-bun node_modules/typescript/bin/tsc --noEmit -p .
+bun node_modules/typescript/bin/tsc --noEmit -p z0/tools
 ```
 
 Use those commands through fleet-build. MBP has `bun` but not necessarily a `bunx` executable. Regression tests exercise actual builders/kernel/runtimes, unchanged decision literals, boolean return handling, witnessed kills, observable law gaps, deterministic caps, unsupported decisions and aggregate input failures.
