@@ -14,6 +14,7 @@ bun z0/work-item/probes.ts out/probes.json
 ```
 
 The two Python/JSON inputs are shipped privately using `fleet-build --input FILE:NAME`.
+`verify_results.py RESULTS --source-laws /absolute/pinned/LAWS.bend` is a tiny local read-only artifact/count validator; it runs no proving or replay. Run it from a clean committed worktree after fetching the results and promoting the additional generalization `probes.json`.
 Use `--node mbp --mem 2G --cpus 1 --wait 1800 --timeout 1800 --src <this-worktree>`;
 install on MBP with `bun install --frozen-lockfile`. Do not commit generated/private outputs.
 
