@@ -20,11 +20,13 @@ export const every = (xs: any[]) => yes.and(...xs)
 // src/z0int/fsm/root_canaries.py:21-22 (R7 only has a Boolean Python domain).
 export function rootTerm(id: string, bug = '') {
   return (e: Env) => {
-    if (bug === 'bad verdict') return 3
+    if (bug === 'bad verdict') return when(yes, 3, 3)
     const fs = fields[id]!
     const complete = every(fs.map(f => bug === `known bypass ${f}` ? yes : known(e[f])))
     const holds = every(fs.map(f => bug === `affirmed bypass ${f}` ? yes : affirmed(e[f])))
-    return bug === 'always SUnknown{}' ? 0 : bug === 'always SViolation{}' ? 2 : when(complete, when(holds, 1, 2), 0)
+    if (bug === 'always SUnknown{}') return when(yes, 0, 0)
+    if (bug === 'always SViolation{}') return when(yes, 2, 2)
+    return when(complete, when(holds, 1, 2), 0)
   }
 }
 export const root = (id: string, bug = '') => fun(id).inputs(Object.fromEntries(fields[id]!.map(f => [f, evidence])))
