@@ -1,0 +1,89 @@
+{
+  "source_sha": "d75c94439b75df1786f4cbea966992450b781a7d",
+  "gdp_wired_base": "3cdf37eddf65e6f44292e3b6f602a1657633ffae",
+  "laws": [
+    "i0_mutation_requires_approval",
+    "i0_qa_without_approval",
+    "i0_approved_mutation",
+    "i1_open_blocks_end",
+    "i1_drop_needs_reason",
+    "i1_delegation_must_be_live",
+    "i1_verified_needs_receipt",
+    "i1_work_may_continue",
+    "i2_needs_verified_update",
+    "i2_needs_verified_mark",
+    "i2_verifier_actually_passed",
+    "i2_tool_run_succeeded",
+    "i2_verifier_after_ask",
+    "i2_verifier_after_update",
+    "i2_verifier_finishes_after_start",
+    "i2_update_after_verifier",
+    "i2_delegate_result_received",
+    "i2_delegate_result_before_verifier",
+    "i2_claim_requires_proof",
+    "i2_claim_requires_freshness",
+    "i2_claim_requires_delegate_result",
+    "i3_verifier_target_exact",
+    "i3_result_target_exact",
+    "i3_acceptance_verifier_exact",
+    "i3_claim_requires_identity",
+    "i4_forwarded_ids_are_carried",
+    "i4_empty_forward_is_allowed",
+    "i4_missing_id_is_rejected",
+    "i1_reasoned_drop_allowed",
+    "i1_live_delegation_allowed",
+    "i1_verified_end_allowed",
+    "i2_successful_proof_allowed",
+    "i2_equal_execution_boundary_allowed",
+    "i2_valid_claim_allowed",
+    "i3_identical_target_allowed",
+    "i4_carried_superset_allowed",
+    "i2_execution_at_ask_rejected",
+    "i1_r6_unpublished_drop_open",
+    "i1_r6_visible_drop_resolves",
+    "i2_r6_child_completion_not_resolution",
+    "i2_r6_parent_requires_return",
+    "i2_r6_verified_return_resolves",
+    "i1_r6_exact_day_not_overdue",
+    "i1_r6_old_open_reported",
+    "i1_r6_closed_not_overdue",
+    "i1_r6_unapproved_not_overdue"
+  ],
+  "vendor": {
+    "verifiers.js": {
+      "source": "omp-extensions/z0-relay-guard/verifiers.js",
+      "sha256": "afac2398f45c6aa414b66b9f1e31cd8d3e632da9e10ae30982a87197c17f7e90",
+      "byte_identical": true
+    },
+    "checker.js": {
+      "source": "omp-extensions/z0-relay-guard/checker.js",
+      "sha256": "8f6f047c98c2a95f3625b7a76632779d02bdc77d9c0e70ee252f2e3436766736",
+      "byte_identical": true
+    },
+    "checker.test.mjs": {
+      "source": "omp-extensions/z0-relay-guard/checker.test.mjs",
+      "sha256": "2ed3f294b98ce34054a34d6bd365160158930e1330ab11e0b98b7480909862d4",
+      "byte_identical": true
+    },
+    "provenance.test.mjs": {
+      "source": "omp-extensions/z0-relay-guard/provenance.test.mjs",
+      "sha256": "609b0c32dae64c809a498cb647fa9a02740ff7d71031322ef2d677351d257bac",
+      "byte_identical": true
+    },
+    "intent.js": {
+      "source": "omp-extensions/z0-relay-guard/intent.js",
+      "sha256": "c2facb95c0f00abc47bfcea322c5ac66c3f1201c1d24d5a6b94998b18eb2fd42",
+      "byte_identical": true
+    },
+    "intent.test.mjs": {
+      "source": "omp-extensions/z0-relay-guard/intent.test.mjs",
+      "sha256": "6b7423f2b2fa4718bec496f0f41a954f669cbdc76824ffe9cf5eb525c836d4ad",
+      "byte_identical": true
+    },
+    "preconditions.test.mjs": {
+      "source": "omp-extensions/z0-relay-guard/preconditions.test.mjs",
+      "sha256": "27f2e8296c19ae80cdd59470337d594ec71ec58ae4b83e50bc8425a6112bb5fe",
+      "byte_identical": true
+    }
+  }
+}

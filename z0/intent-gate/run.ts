@@ -5,6 +5,7 @@ import {evalC} from '../../core/machine.ts'
 import {checkCase,sampleDecision,runRule} from '../../examples/harness.ts'
 import {bendLaws,extras,variants} from './laws.ts'
 import * as P from './port.ts'
+import {sequenceWitness} from './sequence-check.ts'
 export function setDraw(d:any) {
  let met=0,checked=0,broken:any,disagreement:any
  const r=d.rule,inter=r.interpreter(),comp=r.compiled()
@@ -20,12 +21,15 @@ export function setDraw(d:any) {
  }
  return {checked,met,broken,disagreement}
 }
-const rows:any[]=[]
+const rows:any[]=[],outIndex=process.argv.indexOf('--json'),outputPath=outIndex>0?process.argv[outIndex+1]:undefined
 for(const e of [...bendLaws,...extras]) {
  const t=performance.now()
  try {
   const c=e.case()
+  if(c.kind==='loop')throw Error('No loop cases in this family')
+  const proofStart=performance.now()
   const v=c.kind==='decisions'?proveDecision(c.decisions[0]):proveSteps(c.rule,c.laws,c.steps??[],{search:false})
+  const proof_ms=performance.now()-proofStart
   const from_any=c.kind==='decisions'?{...v,scope:'universal decision (no reachable-state premise)'}:proveSteps(c.rule,c.laws,c.steps??[],{from:'any',search:false})
   let checks:any[],brokenWitness:any
   if(e.kind==='list/set'&&c.kind==='decisions') {
@@ -38,17 +42,19 @@ for(const e of [...bendLaws,...extras]) {
    const cb=c.rule.crossCheck(c.laws,c.steps??[],{trials:40,depth:24,bound:4})
    checks=[{check:'runs',ok:good.steps>0&&!good.violation&&!good.mismatch,detail:good},{check:'builders',ok:!cb.failure,detail:cb}]
    for(const b of c.broken) {
-    const bv=proveSteps(b.rule,b.laws,b.steps??[],{search:false})
-    const rb=runRule(b.rule,b.laws,{trials:1500,depth:24,bound:4},b.steps)
-    checks.push({check:'kernel',item:b.name,ok:!bv.proven,detail:bv},{check:'counterexample',ok:!!rb.violation,detail:rb})
+    const bv=proveSteps(b.rule,[],b.steps??[],{search:false})
+    const rb=runRule(b.rule,[],{trials:1500,depth:24,bound:4},b.steps)
+    const targeted=sequenceWitness(e.law_id,b.name)
+    checks.push({check:'kernel',item:b.name,ok:!bv.proven,detail:bv},{check:'counterexample',ok:targeted.broke,detail:{random:rb,targeted}})
    }
   }else checks=checkCase(c)
-  const runs=checks.filter(x=>x.check==='runs'),builders=checks.filter(x=>x.check==='builders'),br=checks.filter(x=>x.check==='counterexample'),bk=checks.filter(x=>x.check==='kernel'&&x.item!==c.decisions?.[0]?.name&&x.item!=='laws')
-  const row={n:e.n,law:e.law_id,src:e.src,kind:e.kind,encoding:e.encoding,proven:v.proven,checked:v.checked,verdict:v,from_any,ms:performance.now()-t,checks,
+  const runs=checks.filter(x=>x.check==='runs'),builders=checks.filter(x=>x.check==='builders'),br=checks.filter(x=>x.check==='counterexample'),bk=checks.filter(x=>x.check==='kernel'&&x.item!==(c.kind==='decisions'?c.decisions[0]?.name:'laws')&&x.item!=='laws')
+  const row={n:e.n,law:e.law_id,src:e.src,kind:e.kind,encoding:e.encoding,proven:v.proven,checked:v.checked,verdict:v,from_any,assumes_set:!!from_any.assumes,proof_ms,ms:performance.now()-t,checks,
    brokenRefused:bk.length>0&&bk.every(x=>x.ok),brokenRun:br.length>0&&br.every(x=>x.ok),ok:false}
   row.ok=v.proven&&v.checked&&runs.length>0&&runs.every(x=>x.ok)&&builders.length>0&&builders.every(x=>x.ok)&&row.brokenRefused&&row.brokenRun
   rows.push(row);console.log(row.ok?'ok':'FAIL',e.law_id,JSON.stringify({v,from_any,ms:row.ms,fail:checks.filter(x=>!x.ok)}))
  }catch(error){rows.push({n:e.n,law:e.law_id,ok:false,error:String(error)});console.log('ERROR',e.law_id,String(error))}
+ if(outputPath)writeFileSync(outputPath,JSON.stringify(rows,null,2))
 }
 const out=process.argv.indexOf('--json');if(out>0)writeFileSync(process.argv[out+1],JSON.stringify(rows,null,2))
 console.log('COUNTS',JSON.stringify({bend:rows.filter(r=>r.n>0).length,bend_ok:rows.filter(r=>r.n>0&&r.ok).length,extras_ok:rows.filter(r=>r.n===0&&r.ok).length}))

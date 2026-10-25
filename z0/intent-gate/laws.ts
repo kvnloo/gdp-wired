@@ -94,7 +94,7 @@ export const sequencePredicates={
  sequence_update_after_verifier:(e:Env)=>e.finish.lt(e.record),
  sequence_delegate_result_before_verifier:(e:Env)=>e.delegated.eq(0).or(e.snapResult.gt(0).and(e.snapResult.lt(e.start))),
 }
-const sequenceBugs=['skip_prereqs','skip_prereqs','skip_finish','skip_record','skip_prereqs']
+const sequenceBugs=['skip_prereqs','ignore_change','skip_finish','skip_record','skip_prereqs']
 export const extras:Entry[]=[
  ...Object.entries(sequencePredicates).map(([law_id,predicate],i):Entry=>{
   const mk=(bug='')=>{const r=P.session(bug);return {rule:r,laws:sessionHelpers(r),steps:[r.stepLaw(law_id,(_b:Env,a:Env)=>a.accepted.eq(1).implies(predicate(a)))]}}
