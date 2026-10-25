@@ -9,6 +9,9 @@ def main():
     ap=argparse.ArgumentParser();ap.add_argument('--source',required=True);ap.add_argument('--out',required=True);a=ap.parse_args()
     root=Path(a.source);out=Path(a.out);out.mkdir(parents=True,exist_ok=True)
     sys.path.insert(0,str(root/'src'))
+    # The only YAML consumed in this harness is our own JSON serialization of the tape.
+    # phone_caps imports yaml eagerly even though its scanner is not used here.
+    sys.modules['yaml']=types.SimpleNamespace(safe_load=json.loads,YAMLError=ValueError)
     from z0int.fsm import ops as P, guard as G
     counts={};rows=0;groups=[]
     dest=(out/'cases.jsonl').open('w')
