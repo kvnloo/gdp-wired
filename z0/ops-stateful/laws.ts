@@ -5,7 +5,9 @@ import * as P from './port.ts'
 type E = any
 const touched = (o:E) => o.out.eq(2).or(o.out.eq(3))
 const none = () => []
+export const decisionFactories = new Map<string,(bug?:string)=>any>()
 function D(n:number,id:string,line:number,mk:any,given:any,then:any,bugs:string[]):Entry {
+ decisionFactories.set(id,(bug?:string)=>mk(bug).law(id,given,then))
  return {n,law_id:id,src:`bend/ops_fsm/LAWS.bend:${line}`,bend:id,says:id,fns:mk.name,kind:'decide',encoding:'exact',
   case:()=>decisionCase(id,id,[mk().law(id,given,then)],bugs.map(bug=>({name:bug,why:id,decision:mk(bug).law(id,given,then)})),{bound:5})}
 }
