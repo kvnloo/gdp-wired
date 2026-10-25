@@ -29,7 +29,7 @@ export function expression(g:string,e:Env,bug='') {
  case 'overdue':o=omit('m25',e.approved).and(omit('m24',e.unresolved),bug==='m23'?e.age.atLeast(86400):e.age.gt(86400));break
  default:throw Error(g)
  }
- return bug==='negate'?o.not():o
+ return bug==='negate'?o.not():bug==='pin_identity'&&g==='identity'?o.and(e.task.eq(7),e.acceptance.eq(11)):o
 }
 export const gate=(g:string,bug='')=>specialGate(g,{},bug)
 // Substitute the literal arguments of a Bend law, leaving its forall arguments free.
@@ -44,8 +44,9 @@ export const specialGate=(g:string,fixed:Record<string,unknown>,bug='')=> {
 }
 // intent.bend:64-77: lists mapped to characteristic sets (duplicates/order irrelevant).
 // Universally quantify membership, not a bounded list or an unverified Boolean summary.
-export const relay=(bug='')=>rule(`intent.relay${bug}`).inputs({x:nat}).carries('Forwarded','Carried')
- .flags((e:Env)=>({allowed:bug==='negate'?e.Forwarded.subsetOf(e.Carried).not():bug==='m18'?yes:bug==='m19'?e.Forwarded.has(e.x).implies(e.Carried.has(e.x)):e.Forwarded.subsetOf(e.Carried)}))
+export const relayExpression=(e:Env,bug='')=>bug==='negate'?e.Forwarded.subsetOf(e.Carried).not():bug==='m18'?yes:bug==='m19'?e.Forwarded.has(e.head).implies(e.Carried.has(e.head)):e.Forwarded.subsetOf(e.Carried)
+export const relay=(bug='')=>rule(`intent.relay${bug}`).inputs({x:nat,head:nat}).carries('Forwarded','Carried')
+ .flags((e:Env)=>({allowed:relayExpression(e,bug)}))
  .state({ok:0}).step((e:Env)=>({ok:when(e.allowed,1,0)}))
 export const setShape=(m:any,values:number[])=>everyKey(k=>m.at(k).eq(when(values.reduce((c,v)=>c.or(k.eq(v)),no),1,0)))
 // Event session, unbounded log + ghost last occurrence indices. Events for a single

@@ -6,8 +6,10 @@ import type {Entry} from '../entry.ts'
 import * as P from './port.ts'
 type Env = P.Env
 const source='bend/intent_gate/LAWS.bend'
+export const variants=new Map<string,(bug?:string)=>any>()
 function D(n:number,line:number,name:string,g:string,fixed:Record<string,unknown>,given:(e:Env,o:Env)=>any,then:(o:Env,e:Env)=>any):Entry {
  const mk=(bug='')=>P.specialGate(g,fixed,bug).law(name,given,then)
+ variants.set(name,mk)
  return {n,law_id:name,src:`${source}:${line}`,bend:name,says:name,fns:g,kind:'decide',encoding:g==='identity'?'interned':'exact',
   case:()=>decisionCase(name,name,[mk()],[{name:'negate',why:'negated output (test-only sabotage)',decision:mk('negate')}],{bound:g==='overdue'?100000:4})}
 }
@@ -22,7 +24,8 @@ function R(n:number,line:number,name:string,form:'subset'|'empty'|'missing'|'sup
   form==='missing'?P.setShape(e.Forwarded,[1]).and(P.setShape(e.Carried,[0])):
   P.setShape(e.Forwarded,[2,1]).and(P.setShape(e.Carried,[0,1,2]))
  const then=(e:Env)=>form==='subset'?e.Carried.has(e.x):form==='missing'?e.allowed.not():e.allowed
- const mk=(bug='')=>P.relay(bug).decide(name,given,then)
+ const mk=(bug='')=>P.relay(bug).decide(name,e=>given({...e,allowed:P.relayExpression(e,bug)}),e=>then({...e,allowed:P.relayExpression(e,bug)}))
+ variants.set(name,mk)
  return {n,law_id:name,src:`${source}:${line}`,bend:name,says:name,fns:'relay_allows',kind:'list/set',encoding:'interned',
   note:'Characteristic sets preserve the whole relay predicate, including duplicates. m19 has a separate head input abstraction.',
   case:()=>decisionCase(name,name,[mk()],[{name:'negate',why:'test-only complement of relay predicate',decision:mk('negate')}])}
