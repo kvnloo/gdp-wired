@@ -5,6 +5,8 @@ export const CLASSES = ['test','mutation','typecheck','gradle','bundle','eval','
 export const LANES = ['groot','mbp','phone'] as const
 export const STAGES = ['none','shadow','canary','live'] as const
 const bit = count
+export const bitTerm = count
+export const readyPlace = (ready:any) => when(ready,3,0)
 const choose = (c:any,a:any,b:any) => c.and(a).or(c.not().and(b))
 const groot = (c: any, bug = 0) => bug === 2 ? yes : c.is('gpu').or(c.is('bend'),c.is('lean'),c.is('service'),c.is('agent-process'),c.is('tiny'))
 // ops.bend:49-109; ops.py:52-68. Place: wait=0,groot=1,mbp=2,phone=3.
@@ -15,12 +17,13 @@ export const placement = (bug = 0) => fun('O1 placement').inputs({cls:oneOf(...C
 // ops.bend:231-236; ops.py:177-178.
 export const privacy = (bug = 0) => fun('O4 privacy').inputs({private:bool,vis:oneOf('public','private','unknown')}).returns((e:any)=>({ok:bit(choose(e.private,bug===22||bug===23?yes:e.vis.is('private'),bug===24?yes.not():yes))}))
 // ops.bend:248-255; ops.py:190-194. Unused variant payloads do not affect the answer.
-export const phone = (bug = 0) => fun('O5 phone').inputs({kind:oneOf('tap','install','restart'),intent:bool,fg:bool,chain:bool,call:bool}).returns(({kind,intent,fg,chain,call}:any)=>({ok:bit(when(kind.is('tap'),bug===25?fg:bug===26?intent:intent.and(fg),when(kind.is('install').and(bug===27?yes:yes.not()).or(kind.is('restart').and(bug===28?yes:yes.not())),yes,chain.and(call).not())))}))
+export const phone = (bug = 0) => fun('O5 phone').inputs({kind:oneOf('tap','install','restart'),intent:bool,fg:bool,chain:bool,call:bool}).returns(({kind,intent,fg,chain,call}:any)=>({ok:bit(when(kind.is('tap'),bug===25?fg:bug===26?intent:bug===106?intent.and(fg,call.not()):intent.and(fg),when(kind.is('install').and(bug===27?yes:yes.not()).or(kind.is('restart').and(bug===28?yes:yes.not())),yes,chain.and(call).not())))}))
 // ops.bend:261-273; ops.py:200-206. Membership quotient of lists: duplicate/order irrelevant
 // to a11y_ok and its elementwise law. first is list head when nonempty, for mutant 30 only.
 // Mutant 29 recursively drops every head, hence always true, as does mutant 31.
+export const a11yAccepted = ({Pre,Post,Rm,first}:any,bug=0) => bug===29||bug===31?yes:bug===30?Pre.has(first).implies(Post.has(first).or(Rm.has(first))):everyKey(k=>Pre.has(k).implies(Post.has(k).or(Rm.has(k))))
 export const accessibility = (bug = 0) => rule('O6 accessibility').inputs({x:nat,first:nat}).carries('Pre','Post','Rm').state({ok:0})
-  .flags(({Pre,Post,Rm,first}:any)=>({accepted:bug===29||bug===31?yes:bug===30?Pre.has(first).implies(Post.has(first).or(Rm.has(first))):everyKey(k=>Pre.has(k).implies(Post.has(k).or(Rm.has(k))))}))
+  .flags((e:any)=>({accepted:a11yAccepted(e,bug)}))
   .step(({accepted}:any)=>({ok:bit(accepted)}))
 // ops.bend:279-280; ops.py:216-217.
 export const routing = (bug = 0) => fun('O7 routing').inputs({cancelled:bool,sol:bool,design:bool}).returns(({cancelled,sol,design}:any)=>({ok:bit((bug===32?yes:cancelled.not()).and(bug===33?yes:design.and(sol).not()))}))
@@ -37,15 +40,15 @@ export const policy = (bug = 0) => fun('O11/O12 policy').inputs({family:nat,name
   const credited = e.stage.is('canary').or(e.stage.is('live'),bug===47?e.stage.is('none'):yes.not(),bug===48?e.stage.is('shadow'):yes.not())
   const local = (bug===49?yes:e.family.eq(e.named_family)).and(bug===51?yes:credited,bug===50?yes:e.arm.eq(e.named_arm))
   const fallback = bug===52?yes:bug===53?e.healthy.or(e.abstain):bug===54?e.healthy.not():e.healthy.not().or(e.abstain)
-  return {credited:bit(credited),ok:bit(when(e.offload,bug===55?yes:bug===101?yes.not():local,e.family.ne(e.named_family).or(e.stage.is('live').not(),bug===102?yes.not():fallback)))}
+  return {credited:bit(credited),ok:bit(when(e.offload,bug===55?yes:bug===101?yes.not():bug===107?local.and(e.healthy):local,e.family.ne(e.named_family).or(e.stage.is('live').not(),bug===102?yes.not():fallback)))}
 })
 // ops.bend:473-491; ops.py:279-296. Scope ids are natural names; injective physical
 // identity interning, valid unexpired credit, and nonnegative counts are caller obligations.
 export const capacity = (bug = 0) => fun('O13 capacity').inputs({credited:bool,actual:nat,named:nat,measured:nat,count:nat,risk:nat}).returns((e:any)=>{
   const credit = bug===58?e.credited:bug===59?e.actual.eq(e.named):e.credited.and(e.actual.eq(e.named))
   const limit = when(credit,bug===60?2:e.measured,bug===56?24:bug===57?2:0)
-  const allows = bug===61?yes:bug===62?e.count.gt(limit):e.count.atMost(bug===63?limit.plus(1):limit)
-  const risk = bug===65?yes:bug===103?yes.not():e.risk.lt(bug===64?3:2)
+  const allows = bug===61?yes:bug===62||bug===105?e.count.gt(limit):e.count.atMost(bug===63?limit.plus(1):limit)
+  const risk = bug===65?yes:bug===103?yes.not():bug===104?e.risk.eq(1):e.risk.lt(bug===64?3:2)
   return {limit,ok:bit(allows),risk:bit(risk),risk_ok:bit(risk.and(allows))}
 })
 export const constructors = {placement,privacy,phone,routing,resources,policy,capacity}
