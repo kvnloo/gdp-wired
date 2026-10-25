@@ -11,7 +11,7 @@ function setWitness(d:any) {
  for(let f=0;f<8;f++)for(let c=0;c<8;c++)for(let x=0;x<3;x++)for(let head=0;head<3;head++) {
   const Forwarded=[0,1,2].filter(k=>f&(1<<k)),Carried=[0,1,2].filter(k=>c&(1<<k))
   if(Forwarded.length&&!Forwarded.includes(head))continue // source mutant's actual head
-  const req=d.rule.encodeInput({x,head,Forwarded,Carried}),env={x,head},st={scalars:{},maps:{Forwarded:req.Forwarded,Carried:req.Carried}}
+  const req=d.rule.encodeInput({x,head,Forwarded,Carried}),env={x,head},st={scalars:{},maps:{Forwarded:req.Forwarded,Carried:req.Carried},defaults:{Forwarded:0,Carried:0}}
   if(d.given.every((c:any)=>evalC(c,env,st,d.rule.machine))&&!evalC(d.then,env,st,d.rule.machine))return {x,head,Forwarded,Carried}
  }
  return null

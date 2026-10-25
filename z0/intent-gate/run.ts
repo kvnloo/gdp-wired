@@ -1,6 +1,6 @@
 // MBP only. Per-law evidence, no failed row hidden by the process exit code.
 import {writeFileSync} from 'node:fs'
-import {proveDecision,proveSteps} from '../../core/dsl.ts'
+import {proveDecision,proveSteps,crossCheckDecision} from '../../core/dsl.ts'
 import {evalC} from '../../core/machine.ts'
 import {checkCase,sampleDecision,runRule} from '../../examples/harness.ts'
 import {bendLaws,extras,variants} from './laws.ts'
@@ -11,7 +11,7 @@ export function setDraw(d:any) {
  const r=d.rule,inter=r.interpreter(),comp=r.compiled()
  for(let f=0;f<8;f++)for(let c=0;c<8;c++)for(let x=0;x<3;x++)for(let head=0;head<3;head++) {
   const Forwarded=[0,1,2].filter(k=>f&(1<<k)),Carried=[0,1,2].filter(k=>c&(1<<k))
-  const input=r.encodeInput({x,head,Forwarded,Carried}),env={x,head},st={scalars:{},maps:{Forwarded:input.Forwarded,Carried:input.Carried}}
+  const input=r.encodeInput({x,head,Forwarded,Carried}),env={x,head},st={scalars:{},maps:{Forwarded:input.Forwarded,Carried:input.Carried},defaults:{Forwarded:0,Carried:0}}
   const a=inter.step({},inter.init({}),input),b=comp.step({},comp.init({}),input)
   if(a.scalars.ok!==b.scalars.ok)disagreement={f,c,x,head}
   checked++
@@ -33,8 +33,8 @@ for(const e of [...bendLaws,...extras]) {
   const from_any=c.kind==='decisions'?{...v,scope:'universal decision (no reachable-state premise)'}:proveSteps(c.rule,c.laws,c.steps??[],{from:'any',search:false})
   let checks:any[],brokenWitness:any
   if(e.kind==='list/set'&&c.kind==='decisions') {
-   const good=setDraw(c.decisions[0]),bad=setDraw(c.broken[0].decision),bv=proveDecision(c.broken[0].decision)
-   checks=[{check:'runs',ok:good.met>0&&!good.broken&&!good.disagreement,detail:good},{check:'builders',ok:!good.disagreement&&!bad.disagreement,detail:'deterministic compiled/interpreter comparison; complete 3-key sets'},
+   const good=setDraw(c.decisions[0]),bad=setDraw(c.broken[0].decision),bv=proveDecision(c.broken[0].decision),gb=crossCheckDecision(c.decisions[0],{bound:4,trials:500}),bb=crossCheckDecision(c.broken[0].decision,{bound:4,trials:500})
+   checks=[{check:'runs',ok:good.met>0&&!good.broken&&!good.disagreement,detail:good},{check:'builders',ok:!good.disagreement&&!bad.disagreement&&!gb.failure&&!bb.failure&&gb.checked>0&&bb.checked>0,detail:{compiled_interpreter:'complete 3-key sets',callbacks:{good:gb,bad:bb}}},
     {check:'kernel',item:'negate',ok:!bv.proven,detail:bv},{check:'counterexample',ok:!!bad.broken,detail:bad.broken}]
   }else if(c.kind==='rule') {
    // No 10-second automatic search on intentionally false variants; real traces below.
@@ -47,7 +47,20 @@ for(const e of [...bendLaws,...extras]) {
     const targeted=sequenceWitness(e.law_id,b.name)
     checks.push({check:'kernel',item:b.name,ok:!bv.proven,detail:bv},{check:'counterexample',ok:targeted.broke,detail:{random:rb,targeted}})
    }
-  }else checks=checkCase(c)
+  }else {
+   // A large numeric draw bound must not become a 100,001-key enumeration
+   // in crossCheckDecision: arithmetic samples and carried-key domains differ.
+   checks=[]
+   const bound=e.fns==='overdue'?100000:4
+   for(const d of c.decisions) {
+    const draw=sampleDecision(d,{trials:20000,bound}),builders=crossCheckDecision(d,{trials:500,bound:4})
+    checks.push({check:'runs',ok:draw.steps>0&&!draw.counterexample,detail:draw},{check:'builders',ok:builders.checked>0&&!builders.failure,detail:builders})
+   }
+   for(const b of c.broken) {
+    const bv=proveDecision(b.decision),draw=sampleDecision(b.decision,{trials:50000,bound}),builders=crossCheckDecision(b.decision,{trials:500,bound:4})
+    checks.push({check:'kernel',item:b.name,ok:!bv.proven,detail:bv},{check:'counterexample',ok:!!draw.counterexample,detail:draw},{check:'builders',ok:builders.checked>0&&!builders.failure,detail:builders})
+   }
+  }
   const runs=checks.filter(x=>x.check==='runs'),builders=checks.filter(x=>x.check==='builders'),br=checks.filter(x=>x.check==='counterexample'),bk=checks.filter(x=>x.check==='kernel'&&x.item!==(c.kind==='decisions'?c.decisions[0]?.name:'laws')&&x.item!=='laws')
   const row={n:e.n,law:e.law_id,src:e.src,kind:e.kind,encoding:e.encoding,proven:v.proven,checked:v.checked,verdict:v,from_any,assumes_set:!!from_any.assumes,proof_ms,ms:performance.now()-t,checks,
    brokenRefused:bk.length>0&&bk.every(x=>x.ok),brokenRun:br.length>0&&br.every(x=>x.ok),ok:false}
