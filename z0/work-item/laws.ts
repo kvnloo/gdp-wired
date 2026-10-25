@@ -42,7 +42,7 @@ export function make(i:number,bug?:Bug){
  const q=claim(i,r,bug);return {rule:r,laws:[...helpers(i,r),...(q.laws??[])],steps:q.steps??[]}
 }
 export function violation(c:any,params:any,trace:any[]){
- const r=c.rule,run=r.interpreter(),p=r.encodeParams(params),ws=[...c.laws,...c.steps].map(w=>watch(r.machine,run,w,p,4));let st=run.init(p)
+ const r=c.rule,run=r.interpreter(),p=r.encodeParams(params),ws=[...(c.steps.length?[]:c.laws.slice(-1)),...c.steps].map(w=>watch(r.machine,run,w,p,4));let st=run.init(p)
  for(const w of ws)if(!w.start(st))return {breaks:true,params,trace:[]}
  for(let j=0;j<trace.length;j++){const input=r.encodeInput(trace[j]),b=st;st=run.step(p,st,input);if(ws.some(w=>!w.step(b,input,st)))return {breaks:true,params,trace:trace.slice(0,j+1)}}
  return {breaks:false}
@@ -65,4 +65,4 @@ export const extras:Entry[]=[
  ['abandon_any_steward','no-abandon',(r:any)=>r.stepLaw('abandon_any_steward',(_:any,a:any)=>a.phase.eq(11),(b:any)=>b.phase.eq(10).and(b.ev.eq(14),b.role.eq(0).or(b.role.eq(1))))],
  ['never_merged_twice','reopen-merged',(r:any)=>r.law('never_merged_twice',(e:any)=>e.merges.atMost(1))],
  ['acceptance_precedes_merge_any_distance','merge-before-accept',(r:any)=>r.law('acceptance_precedes_merge_any_distance',(e:any)=>e.merges.atMost(e.accepts))],
-].map(([id,bug,law]:any,j)=>({n:0,law_id:id,src:'bend/work_item_fsm/fsm.bend:291-316',bend:id,says:id,fns:'step/run',kind:j<2?'step law':'law',encoding:'interned',case:()=>{const r=j<2?arbitrary(10):lifecycle(),b=j<2?arbitrary(10,bug):lifecycle(bug);return machineCase(id,id,r,j<2?[]:[law(r)],[{name:bug,why:'extra negative control',rule:b,laws:j<2?[]:[law(b)],steps:j<2?[law(b)]:[]}],{steps:j<2?[law(r)]:[],bound:3,depth:16})}}))
+].map(([id,bug,law]:any,j)=>({n:0,law_id:id,src:'bend/work_item_fsm/fsm.bend:291-316',bend:id,says:id,fns:'step/run',kind:j<2?'step law':'law',encoding:'interned',case:()=>{const r=j<2?arbitrary(10):lifecycle(),b=j<2?arbitrary(10,bug):lifecycle(bug);const hs=(x:any)=>j<2?[]:[x.law('no previous merge outside Merged',(e:any)=>e.phase.eq(8).not().implies(e.merges.eq(0))),...(j===3?[x.law('accepted has earlier acceptance',(e:any)=>e.phase.eq(7).implies(e.accepts.atLeast(1)))]:[])];return machineCase(id,id,r,j<2?[]:[...hs(r),law(r)],[{name:bug,why:'extra negative control',rule:b,laws:j<2?[]:[...hs(b),law(b)],steps:j<2?[law(b)]:[]}],{steps:j<2?[law(r)]:[],bound:3,depth:16})}}))

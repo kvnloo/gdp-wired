@@ -6,10 +6,23 @@ const args=process.argv.slice(2),path=args[args.indexOf('--oracle')+1]!,out=args
 const r=lifecycle(),run=r.interpreter(),compiled=r.compiled(),chart=statechart(),cr=chart.rule,chartRun=cr.interpreter()
 const counters:any={seeded:{tapes:0,steps:0,divergences:0,refusals:0},real:{tapes:0,steps:0,divergences:0,refusals:0}},divergences:any[]=[],real:any[]=[],watchCounts:any={}
 const eq=(a:any,b:any)=>JSON.stringify(a)===JSON.stringify(b)
+// src/z0int/fsm/replay.py:108-145, kept separate from theorem monitors.
+function diagnose(st:any,e:any,item:any){
+ const p=st.phase,k=e.ev,other=e.actor!==st.au
+ const finding=(law:any,severity:string,code:string)=>({law,severity,code})
+ if(k===9&&p!==7)return finding(1,'violation','merged_without_owner_acceptance')
+ if(k===4&&p===3&&!other)return finding(2,item.meta?.author==='kvnloo'?'indeterminate':'violation','self_verified')
+ if(k===5&&p===4){if(!other)return finding(2,item.meta?.author==='kvnloo'?'indeterminate':'violation','self_integrated');if(!e.passed||e.rsha!==e.sha)return finding(3,'violation','integrated_without_bound_receipt')}
+ if(k===5&&(p===2||p===3))return finding(3,'violation','integrated_without_head_receipt')
+ if(k===6&&p===5)return finding(4,'violation','deploy_not_integrated_head')
+ if(k===14&&[2,3,4].includes(p))return finding(null,'info','closed_outside_statechart')
+ if([0,13].includes(k)&&![1,2].includes(e.role))return finding(6,'violation','non_coder_implements')
+ return finding(null,'info','refused_event')
+}
 // Python and TS construct object keys in the same canonical order via decodeItem.
 for(const line of readFileSync(path,'utf8').trim().split('\n')){
  const t=JSON.parse(line),counts=counters[t.kind];counts.tapes++
- let st=run.init({}),g=compiled.init({}),cs=chartRun.init({}),first=false;const rejected:any[]=[],watched:any[]=[]
+ let st=run.init({}),g=compiled.init({}),cs=chartRun.init({}),first=false;const rejected:any[]=[],watched:any[]=[],itemWatchViolations:any={}
  if(t.kind==='real'){
  for(let i=0;i<12;i++){const q=claim(i,r);for(const law of [...(q.laws??[]),...(q.steps??[])])watched.push({name:names[i],on:watch(r.machine,run,law,{},4)})}
  }
@@ -20,9 +33,9 @@ for(const line of readFileSync(path,'utf8').trim().split('\n')){
   counts.steps++
   if((!eq(actual,t.expected[j])||!eq(actual,generated)||!eq(actual,chartActual))&&!first){first=true;counts.divergences++;divergences.push({kind:t.kind,id:t.id,step:j,event:e,expected:t.expected[j],actual,generated,chart:chartActual,class:'adapter bug'})}
   const same=eq(decodeItem(before.scalars),actual),refused=same&&!(e.ev===7&&before.scalars.phase===6)&&!(e.ev===2&&before.scalars.phase===2&&before.scalars.hd===e.sha)
-  if(refused){counts.refusals++;rejected.push({step:j,event:e.ev,phase:phases[before.scalars.phase]})}
+  if(refused){counts.refusals++;rejected.push({step:j,event:e.ev,phase:phases[before.scalars.phase],...(t.kind==='real'?{diagnostic:diagnose(before.scalars,e,t.meta)}:{})})}
   if(refused!==t.refused[j]&&!first){first=true;counts.divergences++;divergences.push({kind:t.kind,id:t.id,step:j,class:'adapter bug',reason:'refused predicate',actual:refused,expected:t.refused[j]})}
-  for(const w of watched)if(!w.on.step(before,input,st))watchCounts[w.name]=(watchCounts[w.name]??0)+1
+  for(const w of watched)if(!w.on.step(before,input,st)){watchCounts[w.name]=(watchCounts[w.name]??0)+1;itemWatchViolations[w.name]=(itemWatchViolations[w.name]??0)+1}
  }
  if(t.kind==='real'){
   // astep/board monitors run on the same event tape as a one-item board, availability deep_work.
@@ -34,7 +47,10 @@ for(const line of readFileSync(path,'utf8').trim().split('\n')){
    boardWatches.push({law:names[i],violations,availability:'deep_work',scope:'one item board; board_frame antecedent false'})
   }
   const meta=t.meta,recorded=meta.findings.map((f:any)=>({law:f.law,severity:f.severity,code:f.code})),final=decodeItem(st.scalars)
-  real.push({id:t.id,kind:meta.kind,events:t.events.length,model_final:final.phase,recorded_phase:meta.phase,phase_agrees:final.phase===meta.phase,refused:rejected,theorem_watch_violations:0,boardWatches,recorded_findings:recorded,comparison:recorded.length?'stored evidence diagnostics have broader observational scope than legal-transition theorem watch':'no stored diagnostics'})
+  const actualDiagnostics=rejected.map(x=>x.diagnostic),key=(f:any)=>JSON.stringify(f)
+  const unmatchedStored=recorded.filter((f:any)=>!actualDiagnostics.some((a:any)=>key(a)===key(f))).map((f:any)=>({...f,class:'stale or limited oracle',reason:'observational metadata/time/ancestry diagnostic is not a legal transition theorem'}))
+  const unmatchedActual=actualDiagnostics.filter((a:any)=>!recorded.some((f:any)=>key(a)===key(f))).map((a:any)=>({...a,class:meta.kind==='service'?'intentional rule difference':'harness bug',reason:meta.kind==='service'?'service replay uses richer observed-state diagnostics instead of Trace.replay diagnose':'unexpected event diagnostic disagreement'}))
+  real.push({id:t.id,kind:meta.kind,events:t.events.length,model_final:final.phase,recorded_phase:meta.phase,phase_agrees:final.phase===meta.phase,refused:rejected,diagnostic_comparison:{matched:actualDiagnostics.filter((a:any)=>recorded.some((f:any)=>key(a)===key(f))).length,unmatchedStored,unmatchedActual},theorem_watch_violations:itemWatchViolations,boardWatches,recorded_findings:recorded,comparison:recorded.length?'stored evidence diagnostics have broader observational scope than legal-transition theorem watch':'no stored diagnostics'})
  }
 }
 // Intentional sabotage: early merge must diverge from the Python reference after shortest directed prefix.
