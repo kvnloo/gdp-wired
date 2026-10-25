@@ -1,9 +1,10 @@
 // Mutate only compiled implementation values. Laws are never rewritten for machine cases.
 import {type C, type E, type Machine, type State, type Request, evalC, evalE, interpret, loadJs, numbersOf, seeded} from '../../core/machine.ts'
 import {type Decision, funOf, proveDecision} from '../../core/dsl.ts'
-import {proveStepLaws} from '../../kernel/prove.ts'
+import {clock, withDeadline, proveStepLaws} from '../../kernel/prove.ts'
+import {decisionMutation} from './decisions.ts'
 import {allowed, watch} from '../../core/watch.ts'
-import type {Case, RuleCase, DecisionCase} from '../../examples/harness.ts'
+import type {Case, RuleCase} from '../../examples/harness.ts'
 
 export type Edit = {path: (string | number)[], operator: string, before: E | C, after: E | C}
 export type Options = {cap: number, seed: number, trials: number, depth: number, bound: number}
@@ -103,29 +104,6 @@ function exercise(c: RuleCase, original: Machine, mutant: Machine, opts: Options
   return {runs, steps, differs, kills}
 }
 
-// A Fun decision has its implementation retained by funOf. Substitute whole *computed* output terms only,
-// never arbitrary constants/variables or the outer law comparator. Bare rule.decide has no output boundary;
-// it is explicitly unsupported rather than silently mutating a specification.
-function substitutions(original: Machine, mutant: Machine): [E | C, E | C][] {
-  const pairs: [E | C, E | C][] = []
-  for (const [name, e] of Object.entries(original.step.state ?? {})) {
-    const other = mutant.step.state?.[name]
-    if (!other || text(e) === text(other)) continue
-    if (e.op === 'if' && e.then.op === 'const' && e.then.value === 1 && e.else.op === 'const' && e.else.value === 0 && other.op === 'if' && text(e.then) === text(other.then) && text(e.else) === text(other.else)) pairs.push([e.c, other.c])
-    if (e.op !== 'var' && e.op !== 'const') pairs.push([e, other])
-  }
-  return pairs
-}
-function substitute<T>(t: T, pairs: [E | C, E | C][]): T {
-  for (const [before, after] of pairs) if (text(t) === text(before)) return after as T
-  if (Array.isArray(t)) return t.map(x => substitute(x, pairs)) as T
-  if (t && typeof t === 'object') return Object.fromEntries(Object.entries(t).map(([k, x]) => [k, substitute(x, pairs)])) as T
-  return t
-}
-function mutateDecision(d: Decision, pairs: [E | C, E | C][]): Decision {
-  return {...d, given: substitute(d.given, pairs), then: substitute(d.then, pairs), goal: substitute(d.goal, pairs), steps: undefined}
-}
-
 export type Cell = {proven: boolean, checked: boolean, killed: boolean, witness?: unknown, error?: string}
 export type MutantRow = {id: string, edit: Edit, status: 'killed' | 'survived' | 'unknown', likely_equivalent: boolean, observations: {runs: number, steps: number, differs: boolean}, laws: Record<string, Cell>, ms: number, error?: string}
 export function summarize(rows: MutantRow[]) {
@@ -146,19 +124,22 @@ export function mutateCase(c: Case, options: Partial<Options> = {}) {
     const row: MutantRow = {id, edit, status: 'unknown', likely_equivalent: false, observations: {runs: 0, steps: 0, differs: false}, laws: {}, ms: 0}
     try {
       if (c.kind === 'rule') {
-        const suite = proveStepLaws(mutant, c.laws, c.steps ?? [])
+        const prove = (laws: typeof c.laws, steps: NonNullable<typeof c.steps>) => withDeadline(clock() + 1000, () => proveStepLaws(mutant, laws, steps))
+        const suite = prove(c.laws, c.steps ?? [])
         const runs = exercise(c, source, mutant, opts)
         row.observations = {runs: runs.runs, steps: runs.steps, differs: runs.differs}
         for (const law of [...c.laws, ...(c.steps ?? [])]) {
           // Keep all stated invariants as the inductive context for a step claim, not other step conclusions.
-          const v = 'holds' in law ? proveStepLaws(mutant, [law], []) : proveStepLaws(mutant, c.laws, [law])
+          const v = 'holds' in law ? prove([law], []) : prove(c.laws, [law])
           row.laws[law.name] = {proven: v.proven, checked: v.checked, killed: !!runs.kills[law.name], ...(runs.kills[law.name] ? {witness: runs.kills[law.name]} : {})}
         }
         row.status = Object.values(row.laws).some(l => l.killed) ? 'killed' : suite.proven && suite.checked ? 'survived' : 'unknown'
       } else {
-        const pairs = substitutions(source, mutant)
-        if (!pairs.length) throw new Error('unsupported output boundary (literal/identity or boolean wrapper edit)')
-        const ds = c.decisions.map(d => mutateDecision(d, pairs)), rng = seeded(opts.seed)
+        if (c.decisions.some(d => text(funOf(d)?.rule.machine) !== text(source))) throw new Error('multiple different functions in one decision case are unsupported')
+        const ds = c.decisions.map(d => decisionMutation(d, mutant, edit.path)), rng = seeded(opts.seed)
+        const f = funOf(c.decisions[0]!)!
+        const observations = exercise({kind: 'rule', name: c.name, about: c.about, rule: f.rule, laws: [], broken: []}, source, mutant, {...opts, depth: 1})
+        row.observations = {runs: observations.runs, steps: observations.steps, differs: observations.differs}
         for (const [i, d] of ds.entries()) {
           const v = proveDecision(d, {ms: 1000}), own = c.decisions[i]!
           const cell: Cell = {proven: v.proven, checked: v.checked, killed: false}
@@ -166,11 +147,7 @@ export function mutateCase(c: Case, options: Partial<Options> = {}) {
             const params = own.rule.randomParams(rng, opts.bound), request = own.rule.randomInput(rng, opts.bound, params)
             const env = {...params, ...numbersOf(request)}, st: State = {scalars: {}, maps: Object.fromEntries(Object.entries(request).filter((e): e is [string, ReadonlyMap<number, number>] => typeof e[1] !== 'number').map(([n, cells]) => [n, new Map(cells)]))}
             const m = own.rule.machine, given = d.given.every(g => evalC(g, env, st, m))
-            row.observations.runs++
-            // Every compiled output is observable, not just the law's truth value.
-            for (const [name, e] of Object.entries(source.step.state ?? {})) if (evalE(e, env, st, source) !== evalE(mutant.step.state![name]!, env, st, mutant)) row.observations.differs = true
             if (given) {
-              row.observations.steps++
               if (!evalC(d.then, env, st, m)) { cell.killed = true; cell.witness ??= {params, request} }
             }
           }
@@ -186,5 +163,5 @@ export function mutateCase(c: Case, options: Partial<Options> = {}) {
     for (const [name, cell] of Object.entries(row.laws)) (matrix[name] ??= {})[id] = cell
     rows.push(row)
   }
-  return {supported: true, scope: c.kind === 'rule' ? 'compiled machine; fixed laws' : 'retained Fun outputs substituted into inlined decisions; see README ambiguity limit', seed: opts.seed, options: opts, candidates: candidates.length, truncated: candidates.length > opts.cap, rows, matrix, summary: summarize(rows), ms: performance.now() - start}
+  return {supported: true, scope: c.kind === 'rule' ? 'compiled machine; fixed laws' : 'public Fun specification callbacks re-run over changed return expression', seed: opts.seed, options: opts, candidates: candidates.length, truncated: candidates.length > opts.cap, rows, matrix, summary: summarize(rows), ms: performance.now() - start}
 }
