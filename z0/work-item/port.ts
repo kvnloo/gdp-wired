@@ -87,7 +87,7 @@ export function board(bug?:Bug){
  const params:any={n:nat,j:nat}
  for(const f of fields)params['p_'+f]=f==='phase'?upTo(11):nat
  return rule('board projection').params(params).inputs({...inputs,av:upTo(2),i:nat})
- .state(Object.fromEntries(fields.map(f=>[f,(p:Env)=>p['p_'+f]])))
+ .state(Object.fromEntries(fields.map(f=>[f,(p:Env)=>when(p.j.lt(p.n),p['p_'+f],f==='phase'?11:0)])))
  .step((e:Env)=>{
   const d=available(e,bug), target=delta(e,bug)
   const hit=(bug==='board-broadcast'?yes:e.i.eq(e.j)).and(e.j.lt(e.n),e.i.lt(e.n))
