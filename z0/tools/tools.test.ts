@@ -45,7 +45,7 @@ test('numeric computed decision output and boolean decision output retain specs'
   const m = mutateCase(decisionCase('add', '', [f.law('adds one', () => [], (o, {x}) => o.out.eq(x.plus(1)))]), {trials: 40})
   expect(m.summary.killed).toBeGreaterThan(0)
   const b = fun('bool').inputs({x: bool}).returns(({x}) => ({out: x}))
-  const bm = mutateCase(decisionCase('bool', '', [b.law('same bool', () => [], (o, {x}) => o.out.eq(x))]), {trials: 20})
+  const bm = mutateCase(decisionCase('bool', '', [b.law('same bool', () => [], (o, {x}) => o.out.implies(x).and(x.implies(o.out)))]), {trials: 20})
   expect(bm.summary.killed).toBeGreaterThan(0)
 })
 

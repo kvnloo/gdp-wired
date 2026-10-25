@@ -2,7 +2,7 @@
 // specification over a changed return expression; structural replacement in an inlined
 // goal would also change equal constants/inputs in the specification and is unsound.
 import {Cond, Fun, Term, type Decision, funOf} from '../../core/dsl.ts'
-import type {E, Machine} from '../../core/machine.ts'
+import type {Machine} from '../../core/machine.ts'
 
 type AnyFun = NonNullable<ReturnType<typeof funOf>>
 type Output = (env: never) => Record<string, unknown>

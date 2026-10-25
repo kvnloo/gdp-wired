@@ -1,6 +1,6 @@
 // Mutate only compiled implementation values. Laws are never rewritten for machine cases.
-import {type C, type E, type Machine, type State, type Request, evalC, evalE, interpret, loadJs, numbersOf, seeded} from '../../core/machine.ts'
-import {type Decision, funOf, proveDecision} from '../../core/dsl.ts'
+import {type C, type E, type Machine, type State, type Request, evalC, interpret, loadJs, numbersOf, seeded} from '../../core/machine.ts'
+import {funOf, proveDecision} from '../../core/dsl.ts'
 import {clock, withDeadline, proveStepLaws} from '../../kernel/prove.ts'
 import {decisionMutation} from './decisions.ts'
 import {allowed, watch} from '../../core/watch.ts'
@@ -158,7 +158,7 @@ export function mutateCase(c: Case, options: Partial<Options> = {}) {
       // Concrete refutation contradicting an accepted proof is an instrument/kernel issue, never a good score.
       if (Object.values(row.laws).some(l => l.killed && l.proven && l.checked)) throw new Error('concrete violation contradicts checked proof')
       row.likely_equivalent = row.status === 'survived' && row.observations.runs >= opts.trials && row.observations.steps > 0 && !row.observations.differs
-    } catch (error) { row.status = 'unknown'; row.likely_equivalent = false; row.error = String(error) }
+    } catch (error) { row.status = 'unknown'; row.likely_equivalent = false; row.error = String(error); for (const cell of Object.values(row.laws)) cell.killed = false }
     row.ms = performance.now() - t0
     for (const [name, cell] of Object.entries(row.laws)) (matrix[name] ??= {})[id] = cell
     rows.push(row)
