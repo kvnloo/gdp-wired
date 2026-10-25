@@ -72,7 +72,7 @@ export function lifecycle(mode: 'snapshot' | 'atomic' = 'snapshot', bug?: LifeBu
   return rule(`SQLite lifecycle (${mode})`).params({initialAuth: nat})
     .inputs({op: oneOf(...EVENTS), complete: bool, known: bool, amount: nat, actorEpoch: nat, actorHasMain: bool})
     .state({main: 1, wal: 1, shm: 1, visible: 0, hidden: 0, ghosts: 0, hiddenGhosts: 0,
-      scanComplete: bool.from(false), scanEmpty: bool.from(false), scanEpoch: 0,
+      scanComplete: bool.from(false), scanEmpty: bool.from(false), scanEpoch: 0, scanAuthEpoch: 0,
       auth: ({initialAuth}) => initialAuth, authEpoch: 0, authKnown: bool.from(false), scannedAuth: 0,
       replacements: 0, removed: 0})
     .flags((e: E) => ({
@@ -82,8 +82,8 @@ export function lifecycle(mode: 'snapshot' | 'atomic' = 'snapshot', bug?: LifeBu
     }))
     .flags((e: E) => ({
       installing: e.swapping.and(e.censusOK, mode === 'atomic' ?
-        (bug === 'ignore actual holders' ? yes : e.actualEmpty).and(e.scanEpoch.eq(e.main),
-          bug === 'skip auth check' ? yes : authCond(e.authKnown, e.auth, e.amount)) : yes),
+        (bug === 'ignore actual holders' ? yes : e.actualEmpty).and(e.scanEpoch.eq(e.main), e.scanAuthEpoch.eq(e.authEpoch),
+          bug === 'skip auth check' ? yes : authCond(e.authKnown, e.auth, e.amount)) : authCond(e.authKnown, e.scannedAuth, e.amount)),
       removing: e.op.is('remove-sidecars').and(bug === 'stale sidecar' ? yes : e.actorHasMain.and(e.actorEpoch.eq(e.main))),
     }))
     .step((e: E) => {
@@ -100,6 +100,7 @@ export function lifecycle(mode: 'snapshot' | 'atomic' = 'snapshot', bug?: LifeBu
         scanComplete: when(e.op.is('scan'), e.complete, e.scanComplete),
         scanEmpty: when(e.op.is('scan'), e.visible.plus(e.ghosts).eq(0), e.scanEmpty),
         scanEpoch: when(e.op.is('scan'), e.main, e.scanEpoch),
+        scanAuthEpoch: when(e.op.is('scan'), e.authEpoch, e.scanAuthEpoch),
         auth: when(writeAuth, nextAuth, e.auth),
         authEpoch: when(writeAuth, e.authEpoch.plus(1), e.authEpoch),
         authKnown: when(e.op.is('scan'), e.known, e.authKnown),
