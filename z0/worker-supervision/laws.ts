@@ -40,7 +40,7 @@ export function modelCase(id:string,bug?:Bug):any {
  if(id==='running_is_placed'||id==='stalled_is_placed'){
   const running=c.law('running_is_placed',e=>e.in('Running').implies(placed(e)))
   const stalled=c.law('stalled_is_placed',e=>e.in('Stalled').implies(placed(e)))
-  return {kind:'rule',rule:r,laws:id==='running_is_placed'?[running]:[running,stalled],steps:[]}
+  return {kind:'rule',rule:r,laws:[running,stalled],steps:[]}
  }
  let s:any
  switch(id){
@@ -69,4 +69,4 @@ function entry(n:number,id:string,line:number,bug:string):Entry{
  }}
 }
 export const bendLaws:Entry[]=specs.map(([id,line,bug],i)=>entry(i+1,id,line,bug))
-export const extras:Entry[]=[entry(0,'abandoned_never_resumes',165,'revive_abandoned'),entry(0,'resume_requires_log',121,'resume_no_log'),entry(0,'overdue_resume_adopts',121,'drop_adoption')]
+export const extras:Entry[]=[entry(0,'abandoned_never_resumes',165,'revive_abandoned'),entry(0,'resume_requires_log',121,'resume_no_log'),entry(0,'overdue_resume_adopts',121,'drop_overdue_adoption')]

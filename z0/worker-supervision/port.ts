@@ -25,7 +25,7 @@ export function worker(bug?: Bug) {
     .on('Interrupt',{from:['Running','Stalled'],to:'Interrupted',set:({t})=>({...clear,at:t})})
     .on('Tick',{from:'Interrupted',to:'Overdue',when:({t,at,lim})=>bug==='no_overdue'?no:t.gt(at.plus(lim))})
     .on('Resume',{from:'Interrupted',to:'Resumed',when:({log})=>bug==='resume_no_log'?yes:bug==='no_resume'?no:log,set:({successor,bg})=>({...clear,by:successor,bg:bug==='drop_adoption'?0:bg})})
-    .on('Resume',{from:'Overdue',to:'Resumed',when:({log})=>bug==='resume_no_log'?yes:bug==='no_resume'?no:log,set:({successor,bg})=>({...clear,by:successor,bg})})
+    .on('Resume',{from:'Overdue',to:'Resumed',when:({log})=>bug==='resume_no_log'?yes:bug==='no_resume'?no:log,set:({successor,bg})=>({...clear,by:successor,bg:bug==='drop_overdue_adoption'?0:bg})})
     .on('Abandon',{from:'Interrupted',to:'Abandoned',when:({bg})=>bug==='abandon_bg'?yes:bug==='no_abandon'?no:bg.eq(0),set:()=>({...clear,bg:0})})
     .on('Abandon',{from:['Overdue','Completed'],to:'Abandoned',when:({bg})=>bug==='no_abandon'?no:bg.eq(0),set:()=>({...clear,bg:0})})
     .on('Integrate',{from:'Completed',to:'Integrated',when:({bg})=>bug==='integrate_bg'?yes:bg.eq(0),set:()=>({...clear,bg:0})})
@@ -42,7 +42,7 @@ export function lease(bug?:Bug){
   const acquire=op.is('Acquire').and(bug==='lease_steal'?yes:held.not())
   const release=op.is('Release').and(held,bug==='lease_release'?yes:a.eq(owner))
   const reclaim=op.is('Reclaim').and(held,dead)
-  return {held:when(release,false,when(acquire.or(reclaim),true,held)),owner:when(release,0,when(acquire.or(reclaim),a,owner))}
+  return {held:when(release,no,when(acquire.or(reclaim),yes,held)),owner:when(release,0,when(acquire.or(reclaim),a,owner))}
  })
 }
 // Device: fsm.bend:339-376; Python worker_supervision.py:195-212.
@@ -52,8 +52,8 @@ export function device(bug?:Bug){
  .step(({op,a,app,held,owner,seen,fg})=>{
   const lock=op.is('Lock').and(bug==='phone_steal'?yes:held.not())
   const unlock=op.is('Unlock').and(held,a.eq(owner))
-  return {held:when(unlock,false,when(lock,true,held)), owner:when(unlock,0,when(lock,a,owner)),
-   seen:when(op.is('Peek'),true,when(op.is('Input'),bug==='stale_look'?seen:false,seen)),
+  return {held:when(unlock,no,when(lock,yes,held)), owner:when(unlock,0,when(lock,a,owner)),
+   seen:when(op.is('Peek'),yes,when(op.is('Input'),bug==='stale_look'?seen:no,seen)),
    fg:when(op.is('Peek'),app,when(op.is('Input').and(bug==='stale_look'?no:yes),0,fg)),
    installed:op.is('Install').and(bug==='install_unlocked'||bug==='write_any'?yes:held.and(owner.eq(a))),
    typed:op.is('Input').and(bug==='wrong_foreground'?yes:seen.and(fg.eq(app)))}
