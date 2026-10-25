@@ -4,7 +4,7 @@ import {claim,make,names,violation} from './laws.ts'
 import {watch} from '../../core/watch.ts'
 const args=process.argv.slice(2),path=args[args.indexOf('--oracle')+1]!,out=args[args.indexOf('--out')+1]??'out'
 const r=lifecycle(),run=r.interpreter(),compiled=r.compiled(),chart=statechart(),cr=chart.rule,chartRun=cr.interpreter()
-const counters:any={seeded:{tapes:0,steps:0,divergences:0,refusals:0},real:{tapes:0,steps:0,divergences:0,refusals:0}},divergences:any[]=[],real:any[]=[],watchCounts:any={}
+const counters:any={seeded:{tapes:0,steps:0,divergences:0,refusals:0},real:{tapes:0,steps:0,divergences:0,refusals:0},boundary:{tapes:0,steps:0,divergences:0,refusals:0}},divergences:any[]=[],real:any[]=[],watchCounts:any={}
 const eq=(a:any,b:any)=>JSON.stringify(a)===JSON.stringify(b)
 // src/z0int/fsm/replay.py:108-145, kept separate from theorem monitors.
 function diagnose(st:any,e:any,item:any){
@@ -28,10 +28,10 @@ for(const line of readFileSync(path,'utf8').trim().split('\n')){
  }
  for(let j=0;j<t.events.length;j++){
   const e=t.events[j],input=r.encodeInput(e),before=st;st=run.step({},st,input);g=compiled.step({},g,input)
-  cs=chartRun.step({},cs,cr.encodeInput({actor:e.actor,role:e.role,sha:e.sha,rsha:e.rsha,passed:e.passed,event:phases[0] /* replaced below */,...{event:['Claim','Start','Push','Submit','Verify','Integrate','Deploy','Observe','Accept','Merge','Block','Unblock','Interrupt','Resume','Abandon'][e.ev]}}))
+  cs=chartRun.step({},cs,cr.encodeInput({actor:e.actor,role:e.role,sha:e.sha,rsha:e.rsha,passed:e.passed,...{event:['Claim','Start','Push','Submit','Verify','Integrate','Deploy','Observe','Accept','Merge','Block','Unblock','Interrupt','Resume','Abandon'][e.ev]}}))
   const actual=decodeItem(st.scalars),generated=decodeItem(g.scalars),chartActual=decodeItem({...cs.scalars,phase:phases.indexOf(cr.decode(cs).phase)})
   counts.steps++
-  if((!eq(actual,t.expected[j])||!eq(actual,generated)||!eq(actual,chartActual))&&!first){first=true;counts.divergences++;divergences.push({kind:t.kind,id:t.id,step:j,event:e,expected:t.expected[j],actual,generated,chart:chartActual,class:'adapter bug'})}
+  if((!eq(actual,t.expected[j])||!eq(actual,generated)||!eq(actual,chartActual))&&!first){first=true;counts.divergences++;divergences.push({kind:t.kind,id:t.id,step:j,event:e,expected:t.expected[j],actual,generated,chart:chartActual,class:t.kind==='boundary'?'intentional rule difference':'adapter bug'})}
   const same=eq(decodeItem(before.scalars),actual),refused=same&&!(e.ev===7&&before.scalars.phase===6)&&!(e.ev===2&&before.scalars.phase===2&&before.scalars.hd===e.sha)
   if(refused){counts.refusals++;rejected.push({step:j,event:e.ev,phase:phases[before.scalars.phase],...(t.kind==='real'?{diagnostic:diagnose(before.scalars,e,t.meta)}:{})})}
   if(refused!==t.refused[j]&&!first){first=true;counts.divergences++;divergences.push({kind:t.kind,id:t.id,step:j,class:'adapter bug',reason:'refused predicate',actual:refused,expected:t.refused[j]})}

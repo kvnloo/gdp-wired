@@ -38,6 +38,9 @@ with open(a.out,'w') as f:
    ds=happy[:rng.randrange(1,10)]+ds[:rng.randrange(0,25)]
    if i%4==0:ds=happy+[ev('Interrupt',None),ev('Resume','b','opus')]+ds[:12]
   f.write(json.dumps(tape(ds,str(i),'seeded'))+'\n')
+ # Boundary probes are separate from the registered 10,000-tape domain, never normalized away.
+ for label,ds in [('drift_after_acceptance',happy[:8]+[ev('Observe',None,sha='h3'),ev('Merge','ci','ci')]),('empty_head_receipt',[ev('Claim'),ev('Start'),ev('Submit'),dict(kind='Verify',actor=dict(id='ci',role='ci'),sha=None,receipt=dict(sha=None,passed=True))])]:
+  f.write(json.dumps(tape(ds,label,'boundary'))+'\n')
  history=json.load(open(a.history))
  for item in history['items']:f.write(json.dumps(tape(item['events'],item['id'],'real',item))+'\n')
 print(json.dumps(dict(seed=20261025,seeded_tapes=10000,real_items=len(history['items']),max_tape_length=48,comparison='every step; canonical Bend constructor fields; None head -> 0; strings interned injectively')))
