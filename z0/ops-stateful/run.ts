@@ -8,9 +8,10 @@ for(const e of [...bendLaws,...extras]) {
  try {
   const c=e.case()
   const v=c.kind==='decisions'?proveDecision(c.decisions[0]!):c.kind==='rule'?proveSteps(c.rule,c.laws,c.steps??[]):null
+  const proof_ms=performance.now()-t
   const f=checkCase(c)
   const any=c.kind==='rule'?proveSteps(c.rule,c.laws,c.steps??[],{from:'any',search:{ms:1000}}):{not_applicable:'stateless decision quantified over every input',assumes:null}
-  const row={n:e.n,law:e.law_id,src:e.src,kind:e.kind,encoding:e.encoding,verdict:v,proven:!!v?.proven,checked:!!v?.checked,ms:performance.now()-t,from_any:any,assumes:!!v?.assumes,checks:f,ok:!!v?.proven&&!!v?.checked&&f.every(x=>x.ok)}
+  const row={n:e.n,law:e.law_id,src:e.src,kind:e.kind,encoding:e.encoding,verdict:v,proven:!!v?.proven,checked:!!v?.checked,proof_ms,ms:performance.now()-t,from_any:any,assumes:!!v?.assumes,checks:f,ok:!!v?.proven&&!!v?.checked&&f.every(x=>x.ok)}
   rows.push(row);console.log(e.law_id,row.ok?'OK':'ISSUE',row.ms.toFixed(1))
  } catch(err) {rows.push({law:e.law_id,n:e.n,ok:false,error:String(err)});console.log(e.law_id,String(err))}
 }

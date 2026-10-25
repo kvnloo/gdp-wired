@@ -31,12 +31,17 @@ for(const [i,it] of t3.items.entries()){
   if(a.phase==='rollback-pending')a=r.step({...base,event:'rollback'})
  }
  rows.push({law:'o3',index:i,outcome:out,state:a,steps:r.count})
- if(out!==it.expect)divergences.push({law:'o3',index:i,classification:'adapter bug',expected:it.expect,out})
+ if(out!==it.expect||(out==='promoted'||out==='rolled-back')&&a.phase!==out)divergences.push({law:'o3',index:i,classification:'adapter bug',expected:it.expect,out,state:a})
 }
 const t8=load('o8.json'),h=runner('health-once-over-arbitrary-run',{lim:t8.limit_s})
+const nodeOracle=oracle.rows.filter((r:any)=>r.scope==='tape-o8')
+let expectedEmitted=0
 let emitted=0,firstHistoricalDifference:any=null
 for(const [i,it] of t8.items.entries()){
  const a=h.step({ok:it.healthy,now:it.ts,delivered:false})
+ const expected=nodeOracle[i].expected
+ expectedEmitted=it.healthy?0:expectedEmitted+expected.emit
+ if(a.kind!==P.nodeKinds[expected.kind]||a.since!==expected.since||a.emitted!==expectedEmitted)divergences.push({law:'o8',index:i,classification:'adapter bug',expected,expectedEmitted,state:a})
  const delta=a.emitted-emitted
  if(delta>0&&!firstHistoricalDifference)firstHistoricalDifference={index:i,timestamp:it.ts,recorded_action:it.action,gate_emission:delta,classification:'intentional rule difference',note:'The counterfactual guard emits; the actual fleet trace did not. This is the original incident, not a port/twin divergence.'}
  emitted=a.emitted
