@@ -19,9 +19,12 @@ const reject=(o:Env)=>o.ok.not()
 const accept=(o:Env)=>o.ok
 const field=(k:string)=>(_o:Env,e:Env)=>e[k]
 function R(n:number,line:number,name:string,form:'subset'|'empty'|'missing'|'superset'):Entry {
+ // Literal [1]/[0] also supplies its ground value at key 1. These are
+ // redundant exact facts of those constants, not an extra caller assumption;
+ // the prover otherwise misses this forall-to-ground instantiation.
  const given=(e:Env)=>form==='subset'?e.allowed.and(e.Forwarded.has(e.x)):
   form==='empty'?everyKey(k=>e.Forwarded.at(k).eq(0)):
-  form==='missing'?P.setShape(e.Forwarded,[1]).and(P.setShape(e.Carried,[0])):
+  form==='missing'?P.setShape(e.Forwarded,[1]).and(P.setShape(e.Carried,[0]),e.Forwarded.at(1).eq(1),e.Carried.at(1).eq(0)):
   P.setShape(e.Forwarded,[2,1]).and(P.setShape(e.Carried,[0,1,2]))
  const then=(e:Env)=>form==='subset'?e.Carried.has(e.x):form==='missing'?e.allowed.not():e.allowed
  const mk=(bug='')=>P.relay(bug).decide(name,e=>given({...e,allowed:P.relayExpression(e,bug)}),e=>then({...e,allowed:P.relayExpression(e,bug)}))

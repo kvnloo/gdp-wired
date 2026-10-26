@@ -2,9 +2,8 @@
 import {writeFileSync} from 'node:fs'
 import {proveDecision,proveSteps,crossCheckDecision} from '../../core/dsl.ts'
 import {evalC} from '../../core/machine.ts'
-import {checkCase,sampleDecision,runRule} from '../../examples/harness.ts'
-import {bendLaws,extras,variants} from './laws.ts'
-import * as P from './port.ts'
+import {sampleDecision,runRule} from '../../examples/harness.ts'
+import {bendLaws,extras} from './laws.ts'
 import {sequenceWitness} from './sequence-check.ts'
 export function setDraw(d:any) {
  let met=0,checked=0,broken:any,disagreement:any
@@ -31,7 +30,7 @@ for(const e of [...bendLaws,...extras]) {
   const v=c.kind==='decisions'?proveDecision(c.decisions[0]):proveSteps(c.rule,c.laws,c.steps??[],{search:false})
   const proof_ms=performance.now()-proofStart
   const from_any=c.kind==='decisions'?{...v,scope:'universal decision (no reachable-state premise)'}:proveSteps(c.rule,c.laws,c.steps??[],{from:'any',search:false})
-  let checks:any[],brokenWitness:any
+  let checks:any[]
   if(e.kind==='list/set'&&c.kind==='decisions') {
    const good=setDraw(c.decisions[0]),bad=setDraw(c.broken[0].decision),bv=proveDecision(c.broken[0].decision),gb=crossCheckDecision(c.decisions[0],{bound:4,trials:500}),bb=crossCheckDecision(c.broken[0].decision,{bound:4,trials:500})
    checks=[{check:'runs',ok:good.met>0&&!good.broken&&!good.disagreement,detail:good},{check:'builders',ok:!good.disagreement&&!bad.disagreement&&!gb.failure&&!bb.failure&&gb.checked>0&&bb.checked>0,detail:{compiled_interpreter:'complete 3-key sets',callbacks:{good:gb,bad:bb}}},

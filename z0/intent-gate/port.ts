@@ -53,9 +53,12 @@ export const setShape=(m:any,values:number[])=>everyKey(k=>m.at(k).eq(when(value
 // task/execution window; start snapshots prerequisites, later asks/changes invalidate.
 // Timestamp ties remain a separate Bool gate: sequence positions are strictly ordered.
 // JS causal execution provenance: checker.js:214-222. Source never equates wall time and order.
-export const session=(bug='')=>rule('intent.event-log')
+// Nonempty observational query avoids 3cdf37e's generated `let ;` for an
+// empty query list. It is not read by any guard/update/law: no rule is weakened.
+export const session=(bug='',queryWorkaround=true)=>rule('intent.event-log')
  .inputs({event:oneOf('ask','change','delegate','result','start','finish','record','claim','noise'),ok:bool})
  .log('event','ok')
+ .queries(queryWorkaround?{observedOk:(r:Env)=>count(r.ok)}:{})
  .sums({events:()=>count(yes)})
  .state({ask:0,change:0,result:0,start:0,finish:0,record:0,valid:0,seenAsk:0,seenResult:0,delegated:0,snapAsk:0,snapChange:0,snapResult:0,accepted:0})
  .flags((e:Env)=>({fresh:e.seenAsk.eq(1).and(e.ask.lt(e.events.plus(1)),e.change.atMost(e.events.plus(1)),e.delegated.eq(0).or(e.seenResult.eq(1).and(e.result.lt(e.events.plus(1)))))}))
