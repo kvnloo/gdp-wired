@@ -21,16 +21,18 @@ for (const e of [...bendLaws,...extras]) {
       const bad=runRule(b.rule,b.laws,{trials:1000,depth:32,bound:3},b.steps)
       const bv=withDeadline(clock()+5000,()=>proveSteps(b.rule,b.laws,b.steps??[],{search:false}))
       const cross=c.rule.crossCheck(c.laws,c.steps??[],{trials:40,depth:16,bound:3})
+      const brokenCross=b.rule.crossCheck(b.laws,b.steps??[],{trials:40,depth:16,bound:3})
       return [{case:e.law_id,item:'laws',check:'kernel',ok:!!v?.proven&&!!v?.checked,detail:JSON.stringify(summary(v))},
         {case:e.law_id,item:'laws',check:'runs',ok:!good.violation&&!good.mismatch&&good.steps>0,detail:JSON.stringify(good)},
         {case:e.law_id,item:'laws',check:'builders',ok:!cross.failure,detail:JSON.stringify(cross)},
+        {case:e.law_id,item:b.name,check:'builders',ok:!brokenCross.failure,detail:JSON.stringify(brokenCross)},
         {case:e.law_id,item:b.name,check:'kernel',ok:!bv.proven,detail:JSON.stringify(summary(bv))},
         {case:e.law_id,item:b.name,check:'counterexample',ok:!!bad.violation,detail:JSON.stringify(bad)}]
     })()]:checkCase(c)
     const refusals=checks.filter(f=>f.check==='kernel' && f.item!==(c.kind==='rule'?'laws':c.kind==='decisions'?c.decisions[0]!.name:''))
     const breaks=checks.filter(f=>f.check==='counterexample')
     const row={n:e.n,law_id:e.law_id,law:e.bend,src:e.src,kind:e.kind,encoding:e.encoding,ms,...summary(v),from_any:any,
-      brokenRefused:refusals.length>0&&refusals.every(f=>f.ok),brokenRun:breaks.map(f=>f.detail).join('; '),checks,ok:!!v?.proven&&!!v?.checked&&checks.every(f=>f.ok)&&(c.kind!=='rule'||(any.proven&&any.checked&&!any.assumes))}
+      brokenRefused:refusals.length>0&&refusals.every(f=>f.ok),brokenRun:breaks.map(f=>f.detail).join('; '),checks,ok:!!v?.proven&&!!v?.checked&&checks.every(f=>f.ok)&&(c.kind!=='rule'||('proven' in any&&any.proven&&any.checked&&!any.assumes))}
     rows.push(row); console.log(`${row.ok?'ok':'FAIL'} ${e.law_id} ${ms.toFixed(2)}ms`)
   } catch(error) {rows.push({n:e.n,law_id:e.law_id,ok:false,error:String(error)});console.log('ERROR',e.law_id,String(error))}
 }

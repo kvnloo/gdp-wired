@@ -68,6 +68,14 @@ are kept. All successful step laws are also checked with `{from:'any'}` and no
 reachable-state assumptions. The fixed 9->9 acceptance law is separately
 generalized to arbitrary equal counts and known increases.
 
+The optional four-arbitrary-event auth claim is retained unchanged as a stress
+probe. It can return `unknown` on this wide lifecycle even though the inductive
+one-step any-state theorem proves. The nominal kernel deadline is not a hard
+wall cap on preprocessing. Such a result is a limitation, not a false law; strict
+mode correctly exits 1. Static checking on the MBP uses
+`bun node_modules/typescript/bin/tsc --noEmit -p z0/ops-sqlite/tsconfig.json`
+because the job PATH need not contain a `bunx` executable.
+
 No chart is used in the source; the added count/epoch system is a rule, so
 `chart.check()` is not applicable. No Lean export/check, proof of SQLite internals,
 credential identity/set preservation, `/proc` accuracy, filesystem observation,

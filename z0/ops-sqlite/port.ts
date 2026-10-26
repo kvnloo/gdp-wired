@@ -87,7 +87,7 @@ export function lifecycle(mode: 'snapshot' | 'atomic' = 'snapshot', bug?: LifeBu
           bug === 'skip auth check' ? yes : authCond(e.authKnown, e.auth, e.amount)) : authCond(e.authKnown, e.scannedAuth, e.amount)),
       removing: e.op.is('remove-sidecars').and(bug === 'stale sidecar' ? yes : e.actorHasMain.and(e.actorEpoch.eq(e.main))),
     }))
-    .step((e: E) => {
+    .step(e => {
       const nextAuth = bug === 'auth rollback' ? 0 : e.amount
       const writeAuth = e.installing.or(e.op.is('auth-write').and(e.known, mode === 'atomic' ? e.amount.atLeast(e.auth) : yes))
       return {
