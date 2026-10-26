@@ -27,7 +27,7 @@ for(const e of (process.argv.includes('--supplement-only')?[]:[...bendLaws,...ex
 // Every original Bend mutant against every original law. No new law replaces the Bend suite.
 const mutants=process.argv.includes('--supplement-only')?[]:bendMutants.map(([id,bug,description])=>{
  const kills=bendLaws.flatMap(e=>{const c=modelCase(e.law_id,bug),v=verdict(c);return !v.proven?[{law:e.law_id,verdict:v}]:[]})
- const broken_runs=kills.map(k=>{const c=modelCase(k.law,bug);const run:any=c.kind==='decisions'?sampleDecision(c.decisions[0],{trials:10000,bound:4}):runRule(c.rule,c.laws,{trials:1500,depth:30,bound:4},c.steps);return {law:k.law,run,deterministic:witness(k.law,bug),broken:!!(run.violation||run.counterexample)||witness(k.law,bug).breaks}})
+ const broken_runs=kills.map(k=>{const c=modelCase(k.law,bug),direct=witness(k.law,bug);const run:any=direct.breaks?{deterministic:direct}:c.kind==='decisions'?sampleDecision(c.decisions[0],{trials:10000,bound:4}):runRule(c.rule,c.laws,{trials:1500,depth:30,bound:4},c.steps);return {law:k.law,run,deterministic:direct,broken:direct.breaks||!!(run.violation||run.counterexample)}})
  console.log('mutant',id,kills.map(k=>k.law).join(','))
  return {id,bug,description,killed:kills.length>0,kills,broken_runs}
 })
