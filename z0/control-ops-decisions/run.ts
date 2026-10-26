@@ -3,7 +3,8 @@ import {writeFileSync} from 'node:fs'
 import {Cond,proveDecision,proveSteps} from '../../core/dsl.ts'
 import {checkCase} from '../../examples/harness.ts'
 import {bendLaws,extras} from './laws.ts'
-const out=process.argv[process.argv.indexOf('--json')+1]
+const outIndex=process.argv.indexOf('--json')
+const out=outIndex>=0?process.argv[outIndex+1]:undefined
 const proofOnly=process.argv.includes('--proof-only')
 const rows:any[]=[];const started=performance.now()
 for(const e of [...bendLaws,...extras]) {

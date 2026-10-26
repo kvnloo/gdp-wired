@@ -1,6 +1,6 @@
 // Pinned source root: /mnt/zer0models/z0-wt/sqlite-store-laws @ d2e346146380.
 // Bug numbers are 1-based entries of bend/ops_fsm/mutations.py (mutants.json).
-import {bool, count, everyKey, fun, nat, oneOf, rule, when, yes} from '../../core/dsl.ts'
+import {bool, count, everyKey, fun, nat, oneOf, rule, when, yes, type Cond} from '../../core/dsl.ts'
 export const CLASSES = ['test','mutation','typecheck','gradle','bundle','eval','screenshot-run','gpu','bend','lean','service','agent-process','tiny'] as const
 export const LANES = ['groot','mbp','phone'] as const
 export const STAGES = ['none','shadow','canary','live'] as const
@@ -40,7 +40,7 @@ export const resources = (bug = 0) => fun('O10 resources').inputs({ready:bool,me
 // it is labelled a limited oracle, never production policy_guard/ops.py parity.
 export const policy = (bug = 0) => fun('O11/O12 policy').inputs({family:nat,named_family:nat,stage:oneOf(...STAGES),named_arm:nat,arm:nat,offload:bool,healthy:bool,abstain:bool}).returns((e:any)=>{
   const credited = e.stage.is('canary').or(e.stage.is('live'),bug===47?e.stage.is('none'):yes.not(),bug===48?e.stage.is('shadow'):yes.not())
-  const local = (bug===49?yes:e.family.eq(e.named_family)).and(bug===51?yes:credited,bug===50?yes:e.arm.eq(e.named_arm))
+  const local:Cond = (bug===49?yes:e.family.eq(e.named_family)).and(bug===51?yes:credited,bug===50?yes:e.arm.eq(e.named_arm))
   const fallback = bug===52?yes:bug===53?e.healthy.or(e.abstain):bug===54?e.healthy.not():e.healthy.not().or(e.abstain)
   return {credited:bit(credited),ok:bit(when(e.offload,bug===55?yes:bug===101?yes.not():bug===107?local.and(e.healthy):local,e.family.ne(e.named_family).or(e.stage.is('live').not(),bug===102?yes.not():fallback)))}
 })

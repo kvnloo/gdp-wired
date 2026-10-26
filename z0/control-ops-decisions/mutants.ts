@@ -24,7 +24,7 @@ for(const mutant of catalog) {
   let witness:any=null
   if(!v.proven) {
    const env=v.witness as any,empty={scalars:{},maps:{}}
-   try{if(env&&d.given.every(c=>evalC(c,env,empty,d.rule.machine))&&!evalC(d.then,env,empty,d.rule.machine))witness=env}catch{}
+   try{if(env&&d.given.every((c:any)=>evalC(c,env,empty,d.rule.machine))&&!evalC(d.then,env,empty,d.rule.machine))witness=env}catch{}
    if(!witness){const c=e.case();if(c.kind==='decisions')d.rule.randomInput=c.decisions[0]!.rule.randomInput.bind(c.decisions[0]!.rule);witness=sampleDecision(d,{trials:50000,bound:5}).counterexample??null}
   }
   const killed=!v.proven&&!!witness,cell={law:e.law_id,killed,proven:v.proven,checked:v.checked,witness,reason:!v.proven&&!witness?'unproven is not a semantic kill':undefined}
