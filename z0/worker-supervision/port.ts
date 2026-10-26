@@ -50,12 +50,12 @@ export function device(bug?:Bug){
  return rule('device').inputs({op:oneOf('Lock','Unlock','Peek','Install','Input'),a:nat,app:nat})
  .state({held:bool.from(false),owner:0,seen:bool.from(false),fg:0,installed:bool.from(false),typed:bool.from(false)})
  .step(({op,a,app,held,owner,seen,fg})=>{
-  const lock=op.is('Lock').and(bug==='phone_steal'?yes:held.not())
-  const unlock=op.is('Unlock').and(held,a.eq(owner))
+  const lock=op.is('Lock').and(bug==='phone_steal'||bug==='lease_steal'?yes:held.not())
+  const unlock=op.is('Unlock').and(held,bug==='lease_release'?yes:a.eq(owner))
   return {held:when(unlock,no,when(lock,yes,held)), owner:when(unlock,0,when(lock,a,owner)),
    seen:when(op.is('Peek'),yes,when(op.is('Input'),bug==='stale_look'?seen:no,seen)),
    fg:when(op.is('Peek'),app,when(op.is('Input').and(bug==='stale_look'?no:yes),0,fg)),
-   installed:op.is('Install').and(bug==='install_unlocked'||bug==='write_any'?yes:held.and(owner.eq(a))),
+   installed:op.is('Install').and(bug==='install_unlocked'?yes:bug==='write_any'?held:held.and(owner.eq(a))),
    typed:op.is('Input').and(bug==='wrong_foreground'?yes:seen.and(fg.eq(app)))}
  })
 }
