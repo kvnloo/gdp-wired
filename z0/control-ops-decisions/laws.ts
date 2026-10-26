@@ -77,6 +77,9 @@ export const extras:Entry[] = [
  X('extra_resource_noninterference',P.resources,(a:any,b:any)=>a.ready.iff(b.ready),(x:any,y:any)=>x.ok.eq(y.ok).and(x.place.eq(y.place)),[42,43,44,45,46],true),
  X('extra_phone_tap_call_noninterference',P.phone,(a:any,b:any)=>[a.kind.is('tap'),b.kind.is('tap'),a.intent.iff(b.intent),a.fg.iff(b.fg)],(x:any,y:any)=>x.ok.eq(y.ok),[106],true),
  X('extra_offload_health_noninterference',P.policy,(a:any,b:any)=>[a.offload,b.offload,a.family.eq(b.family),a.named_family.eq(b.named_family),a.stage.eq(b.stage),a.arm.eq(b.arm),a.named_arm.eq(b.named_arm)],(x:any,y:any)=>x.ok.eq(y.ok),[107],true),
+ {n:0,law_id:'extra_a11y_complete',src:'bend/ops_fsm/ops.bend:268-273; src/z0int/fsm/ops.py:204-206',bend:'extra_a11y_complete',says:'A fully retained or owner-removed service set is accepted, not merely safe when accepted',fns:'a11y_ok',kind:'step law',encoding:'interned',how:'automatic',
+  case:()=>{const mk=(bug=0)=>{const r=P.accessibility(bug).flags((e:any)=>({complete:P.a11yAccepted(e)}));return {rule:r,laws:[],steps:[r.stepLaw('extra_a11y_complete',(e:any,a:any)=>e.complete.implies(a.ok.eq(1)))]}}
+   const a=mk(),b=mk(108);return machineCase('extra_a11y_complete','Reject-all survives the original safety-only law',a.rule,[],[{name:'mutant-108',why:'reject all valid service sets',...b}],{steps:a.steps,bound:4,depth:3})}},
 ]
 // Test-owned guided draws preserve the literal premises of single-case laws. Generic random
 // draws rarely hit (actual=named=0, measured=count=119); they are not a reason to relax a law.

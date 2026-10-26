@@ -18,7 +18,7 @@ for(const e of [...bendLaws,...extras]) {
    row.from_any=proveSteps(r,[],[step],{from:'any'})
    row.from_any_scope='The same universal request implication as a step law on a stateless rule; no persistence or reachability claim.'
   }
-  if(!proofOnly){row.checks=checkCase(c);row.brokenRefused=row.checks.filter((f:any)=>f.check==='kernel'&&f.item!== (c.kind==='rule'?'laws':c.decisions[0]!.name)).every((f:any)=>f.ok); row.brokenRun=row.checks.filter((f:any)=>f.check==='counterexample').every((f:any)=>f.ok)}
+  if(!proofOnly){row.checks=checkCase(c);row.brokenRefused=row.checks.filter((f:any)=>f.check==='kernel'&&f.item!== (c.kind==='rule'?'laws':c.kind==='decisions'?c.decisions[0]!.name:'loop')).every((f:any)=>f.ok); row.brokenRun=row.checks.filter((f:any)=>f.check==='counterexample').every((f:any)=>f.ok)}
   row.ok=!!(row.proven&&row.checked&&row.from_any?.proven&&row.from_any?.checked&&!row.from_any?.assumes&&(proofOnly||row.checks.every((f:any)=>f.ok)))
  }catch(err){row.error=String(err);row.ok=false}
  rows.push(row);console.log(`${row.ok?'ok':'FAIL'} ${e.law_id} ${row.ms?.toFixed(2)} ms ${row.error??''}`)

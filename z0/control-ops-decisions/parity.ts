@@ -15,7 +15,7 @@ const cases=Object.fromEntries(Object.keys(rules).map(name=>[name,bendLaws.filte
 for await(const line of createInterface({input:createReadStream(`${input}/cases.jsonl`),crlfDelay:Infinity})) {
  if(!line)continue;const row=JSON.parse(line),{family,input:raw,expected,origin}=row;const {r,interpreter,compiled}=engines[family]
  const req=r.encodeInput(raw),st=interpreter.step({},interpreter.init({}),req),gen=compiled.step({},compiled.init({}),req),decoded=r.decode(st)
- const got=family==='accessibility'?{ok:decoded.ok}:Object.fromEntries(Object.entries(decoded).map(([k,v])=>[k.replace(/^out\./,''),v]))
+ const got:Record<string,any>=family==='accessibility'?{ok:decoded.ok}:Object.fromEntries(Object.entries(decoded).map(([k,v])=>[k.replace(/^out\./,''),v]))
  const key=origin+':'+family;counts[key]=(counts[key]??0)+1;n++
  const diff=(classification:string,detail:any)=>{if(divergences.length<20)divergences.push({index:n,family,origin,classification,detail,input:raw,tape:row.tape})}
  if(JSON.stringify(st.scalars)!==JSON.stringify(gen.scalars))diff('kernel bug',{interpreter:st.scalars,compiled:gen.scalars})
