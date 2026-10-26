@@ -63,8 +63,8 @@ cost={'method':'Single execution proof wall time, includes case construction; ms
 'bend_law_named_lines':block_lines((source/'LAWS.bend').read_text(),r'law o(?:2|3|8|9)_'),
 'bend_proof_named_lines':block_lines((source/'PROOF.bend').read_text(),r'def Laws.o(?:2|3|8|9)_'),
 'port_files_lines':{f.name:len(f.read_text().splitlines()) for f in root.iterdir() if f.suffix in {'.ts','.py'}},
-'proof_ms_bend_sum':sum(x.get('proof_ms',0) for x in b if x['n']>0),
-'proof_ms_extras_sum':sum(x.get('proof_ms',0) for x in b if x['n']==0),
+'proof_ms_bend_sum':sum(x['proof_ms'] for x in b if x['n']>0) if all('proof_ms' in x for x in b if x['n']>0) else None,
+'proof_ms_extras_sum':sum(x['proof_ms'] for x in b if x['n']==0) if all('proof_ms' in x for x in b if x['n']==0) else None,
 'battery_ms_sum':sum(x.get('ms',0) for x in b)}
 (p/'cost.json').write_text(json.dumps(cost,indent=2)+'\n')
 print(json.dumps({'counts':counts,'cost':cost},indent=2))
