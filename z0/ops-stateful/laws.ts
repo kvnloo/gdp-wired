@@ -38,7 +38,12 @@ const healthLaws = (r:any) => [
 ]
 const servedSteps = (r:any) => [r.stepLaw('served revision stable without transaction',(e:E,a:E)=>a.rev.eq(e.rev),(e:E)=>e.txn.not())]
 const promotionLaws = (r:any) => [r.law('promoted only after successful launch',(e:E)=>e.phase.is('promoted').implies(e.launchPassed))]
-const restartLaws = (r:any) => [r.law('after interruption never silently failed or done',(e:E)=>e.everInterrupted.implies(e.kind.is('failed').not().and(e.kind.is('done').not())))]
+const restartLaws = (r:any) => [
+ r.law('after interruption never silently failed or done',(e:E)=>e.everInterrupted.implies(e.kind.is('failed').not().and(e.kind.is('done').not()))),
+ // Promote the critic's independently proved coherence helper: proof must not
+ // depend on a wall-clock-limited synthesis pass succeeding on a busy host.
+ r.law('an interrupted history is not active',(e:E)=>e.everInterrupted.implies(e.kind.is('active').not())),
+]
 function M(id:string,mk:any,laws:any,steps:any,bugs:string[],src:string):Entry {
  const r=mk()
  return {n:0,law_id:id,src,bend:id,says:id,fns:mk.name,kind:'step law',encoding:'abstracted',
