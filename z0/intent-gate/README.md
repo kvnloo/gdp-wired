@@ -23,6 +23,14 @@ Pinned source: z0intelligence **d75c94439b75df1786f4cbea966992450b781a7d**.
   checker, port and saved observations, then watches all recorded entries.
 - `sequence-check.ts`: witnesses break the *target* ordering law, not merely
   an auxiliary invariant.
+- `compiler-probe.ts`: preserves the pinned emitter's log-with-no-queries
+  failure (`let ;` in generated JavaScript). The family session adds an unused
+  observational query as a local workaround; no core code or guard is changed.
+
+The constant `[1]` versus `[0]` relay witness includes its exact ground map
+values at key 1 as well as whole-map shape. These redundant literal facts avoid
+an observed forall-to-ground instantiation failure; they do not impose a new
+caller restriction or change a source law.
 
 ## Reproduce off-host
 
@@ -35,6 +43,7 @@ bun install --frozen-lockfile
 mkdir -p out
 bun z0/intent-gate/run.ts --json out/battery.json --strict
 bun z0/intent-gate/critic.ts --json out/critic.json
+bun z0/intent-gate/compiler-probe.ts --json out/compiler-probe.json
 bun z0/intent-gate/extract.ts --json out/extract.json
 bun z0/intent-gate/parity.ts --json out/parity.json
 bun z0/intent-gate/replay.ts --input replay-input.json --json out/replay.json
