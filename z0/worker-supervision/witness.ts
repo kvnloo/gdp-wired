@@ -10,7 +10,7 @@ export function witness(id:string,bug:string){
  interrupted_exits:[...interrupted,e('Finish')],overdue_exits:[...overdue,e('Tick',{t:3})],running_stalls:[e('Start'),e('Tick',{t:2})],stalled_interrupts:[e('Start'),e('Tick',{t:2}),e('Tick',{t:3})],
  end_needs_reaped:bug==='integrate_bg'?[e('Start'),e('Spawn'),e('Finish'),e('Integrate')]:[...spawned,e('Abandon')],
  running_is_placed:[e('Start',{host:0})],stalled_is_placed:[e('Start',{host:0}),e('Tick',{t:2})],
- install_needs_lock:[{op:'Install',a:1}],install_lock_no_steal:[{op:'Lock',a:1},{op:'Lock',a:2}],input_needs_foreground:[{op:'Input',a:1,app:2}],input_needs_fresh_look:[{op:'Peek',a:1,app:1},{op:'Input',a:1,app:1},{op:'Input',a:2,app:1}],
+ install_needs_lock:bug==='write_any'?[{op:'Lock',a:1},{op:'Install',a:2}]:[{op:'Install',a:1}],install_lock_no_steal:[{op:'Lock',a:1},{op:'Lock',a:2}],input_needs_foreground:[{op:'Input',a:1,app:2}],input_needs_fresh_look:[{op:'Peek',a:1,app:1},{op:'Input',a:1,app:1},{op:'Input',a:2,app:1}],
  abandoned_never_resumes:[...interrupted,e('Abandon'),e('Resume')],resume_requires_log:[...interrupted,e('Resume')],overdue_resume_adopts:[...spawned,e('Tick',{t:2}),e('Resume',{log:true})]
  }
  const c=modelCase(id,bug),tape=tapes[id]

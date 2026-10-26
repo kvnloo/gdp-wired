@@ -10,7 +10,7 @@ const verdict=(c:any,options:any={search:false})=>c.kind==='decisions'?proveDeci
 const rows:any[]=[],start=performance.now()
 const idx=process.argv.indexOf('--json'),out=idx>0?process.argv[idx+1]:'battery.json'
 function save(){writeFileSync(out!,JSON.stringify({family:'worker-supervision',rows,wall_ms:performance.now()-start},null,2))}
-for(const e of [...bendLaws,...extras]){
+for(const e of (process.argv.includes('--supplement-only')?[]:[...bendLaws,...extras])){
  try{
   const c=e.case(),t=performance.now(),v=verdict(c),ms=performance.now()-t
   const from_any=verdict(c,{from:'any',search:false})
@@ -25,7 +25,7 @@ for(const e of [...bendLaws,...extras]){
  }catch(err){rows.push({n:e.n,law:e.law_id,ok:false,error:String(err)});console.log(e.law_id,String(err));save()}
 }
 // Every original Bend mutant against every original law. No new law replaces the Bend suite.
-const mutants=bendMutants.map(([id,bug,description])=>{
+const mutants=process.argv.includes('--supplement-only')?[]:bendMutants.map(([id,bug,description])=>{
  const kills=bendLaws.flatMap(e=>{const c=modelCase(e.law_id,bug),v=verdict(c);return !v.proven?[{law:e.law_id,verdict:v}]:[]})
  const broken_runs=kills.map(k=>{const c=modelCase(k.law,bug);const run:any=c.kind==='decisions'?sampleDecision(c.decisions[0],{trials:10000,bound:4}):runRule(c.rule,c.laws,{trials:1500,depth:30,bound:4},c.steps);return {law:k.law,run,deterministic:witness(k.law,bug),broken:!!(run.violation||run.counterexample)||witness(k.law,bug).breaks}})
  console.log('mutant',id,kills.map(k=>k.law).join(','))
@@ -49,6 +49,7 @@ const supplemental_mutants=['revive_abandoned','resume_no_log','drop_overdue_ado
  original_suite:bendLaws.map(e=>({law:e.law_id,...verdict(modelCase(e.law_id,bug))})),
  extra_kills:extras.flatMap(e=>{const v=verdict(modelCase(e.law_id,bug));return v.proven?[]:[{law:e.law_id,verdict:v,witness:witness(e.law_id,bug)}]})
 }))
-const result={family:'worker-supervision',rows,mutants,supplemental_mutants,chart,invariant_search:{alone,inferred},liveness,generalization,wall_ms:performance.now()-start}
+const extraWitnesses={M11_integrate_with_background:witness('end_needs_reaped','integrate_bg')}
+const result={family:'worker-supervision',mode:process.argv.includes('--supplement-only')?'supplement-only':'full',extraWitnesses,rows,mutants,supplemental_mutants,chart,invariant_search:{alone,inferred},liveness,generalization,wall_ms:performance.now()-start}
 writeFileSync(out!,JSON.stringify(result,null,2));console.log(JSON.stringify({rows:rows.length,ok:rows.filter(r=>r.ok).length,mutants_killed:mutants.filter(m=>m.killed).length,chart:chart.ok,wall_ms:result.wall_ms}))
 if(process.argv.includes('--strict')&&(rows.some(r=>!r.ok)||mutants.some(m=>!m.killed)||!chart.ok))process.exitCode=1
