@@ -15,5 +15,6 @@ test('generic battery merges shared implementations and writes witnessed law-by-
     expect(result.summary.mutation.killed).toBeGreaterThan(0)
     const saved=readFileSync(out,'utf8')
     expect(saved).toContain('"matrix"'); expect(saved).toContain('"cap-3"'); expect(saved).toContain('"cap-4"'); expect(saved).toContain('"witness"')
+    expect(saved).toContain('"proof_scope": "suite"')
   } finally {rmSync(root,{recursive:true,force:true})}
 },20000)

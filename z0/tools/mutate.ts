@@ -105,7 +105,7 @@ function exercise(c: RuleCase, original: Machine, mutant: Machine, opts: Options
   return {runs, steps, differs, kills}
 }
 
-export type Cell = {proven: boolean, checked: boolean, killed: boolean, witness?: unknown, error?: string}
+export type Cell = {proven: boolean, checked: boolean, killed: boolean, proof_scope?: 'suite' | 'individual', witness?: unknown, error?: string}
 export type MutantRow = {id: string, edit: Edit, status: 'killed' | 'survived' | 'unknown', likely_equivalent: boolean, observations: {runs: number, steps: number, differs: boolean}, laws: Record<string, Cell>, ms: number, error?: string}
 export function summarize(rows: MutantRow[]) {
   const total = rows.length, killed = rows.filter(r => r.status === 'killed').length, survived = rows.filter(r => r.status === 'survived').length
@@ -124,16 +124,17 @@ export function mutateCase(c: Case, options: Partial<Options> = {}) {
     const t0 = performance.now(), mutant = replace(source, edit.path, edit.after), id = `M${String(index + 1).padStart(4, '0')}`
     const names = c.kind === 'rule' ? [...c.laws, ...(c.steps ?? [])].map(l => l.name) : c.decisions.map(d => d.name)
     const row: MutantRow = {id, edit, status: 'unknown', likely_equivalent: false, observations: {runs: 0, steps: 0, differs: false}, laws: Object.fromEntries(names.map(name => [name, {proven: false, checked: false, killed: false, error: 'not evaluated'}])), ms: 0}
+    const deadline = clock() + 1000 // one shared proof budget, not one fresh budget for each law
     try {
       if (c.kind === 'rule') {
-        const prove = (laws: typeof c.laws, steps: NonNullable<typeof c.steps>) => withDeadline(clock() + 1000, () => proveStepLaws(mutant, laws, steps))
+        const prove = (laws: typeof c.laws, steps: NonNullable<typeof c.steps>) => withDeadline(deadline, () => proveStepLaws(mutant, laws, steps))
         const suite = prove(c.laws, c.steps ?? [])
         const runs = exercise(c, source, mutant, opts)
         row.observations = {runs: runs.runs, steps: runs.steps, differs: runs.differs}
         for (const law of [...c.laws, ...(c.steps ?? [])]) {
           // Keep all stated invariants as the inductive context for a step claim, not other step conclusions.
-          const v = 'holds' in law ? prove([law], []) : prove(c.laws, [law])
-          row.laws[law.name] = {proven: v.proven, checked: v.checked, killed: !!runs.kills[law.name], ...(runs.kills[law.name] ? {witness: runs.kills[law.name]} : {})}
+          const v = suite.proven && suite.checked ? suite : clock() >= deadline ? undefined : 'holds' in law ? prove([law], []) : prove(c.laws, [law])
+          row.laws[law.name] = {proven: !!v?.proven, checked: !!v?.checked, killed: !!runs.kills[law.name], proof_scope: suite.proven && suite.checked ? 'suite' : 'individual', ...(!v ? {error: 'individual proof skipped: shared mutant proof deadline exhausted'} : {}), ...(runs.kills[law.name] ? {witness: runs.kills[law.name]} : {})}
         }
         row.status = Object.values(row.laws).some(l => l.killed) ? 'killed' : suite.proven && suite.checked ? 'survived' : 'unknown'
       } else {
@@ -143,8 +144,8 @@ export function mutateCase(c: Case, options: Partial<Options> = {}) {
         const observations = exercise({kind: 'rule', name: c.name, about: c.about, rule: f.rule, laws: [], broken: []}, source, mutant, {...opts, depth: 1})
         row.observations = {runs: observations.runs, steps: observations.steps, differs: observations.differs}
         for (const [i, d] of ds.entries()) {
-          const v = proveDecision(d, {ms: 1000}), own = c.decisions[i]!
-          const cell: Cell = {proven: v.proven, checked: v.checked, killed: false}
+          const v = clock() >= deadline ? undefined : withDeadline(deadline, () => proveDecision(d, {ms: 1000})), own = c.decisions[i]!
+          const cell: Cell = {proven: !!v?.proven, checked: !!v?.checked, killed: false, ...(!v ? {error: 'proof skipped: shared mutant proof deadline exhausted'} : {})}
           for (let t = 0; t < opts.trials; t++) {
             const params = own.rule.randomParams(rng, opts.bound), request = own.rule.randomInput(rng, opts.bound, params)
             const env = {...params, ...numbersOf(request)}, st: State = {scalars: {}, maps: Object.fromEntries(Object.entries(request).filter((e): e is [string, ReadonlyMap<number, number>] => typeof e[1] !== 'number').map(([n, cells]) => [n, new Map(cells)]))}
