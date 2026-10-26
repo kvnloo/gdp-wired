@@ -28,7 +28,7 @@ bun z0/control-root-cause/run.ts --json out/battery.json --strict
 python3 z0/control-root-cause/oracle.py --twins twins --out out/oracle.json
 bun z0/control-root-cause/parity.ts --oracle out/oracle.json --json out/parity.json --replay out/replay.json
 python3 z0/control-root-cause/cost.py --source twins --battery out/battery.json --out out/cost.json
-bunx tsc --noEmit -p z0/control-root-cause/tsconfig.json
+bun node_modules/typescript/bin/tsc --noEmit -p z0/control-root-cause/tsconfig.json
 ```
 
 Fetch the five JSON artifacts to the private operations results directory.
