@@ -81,6 +81,7 @@ export const bendLaws:Entry[]=[
 // Unbounded event-sequence statements; ghosts are last occurrences in the kept log.
 // No bounded k-step replacement for 'at any distance'. Helpers are explicit.
 export const sessionHelpers=(r:any)=>[
+ r.law('ghost flags are bits',(e:Env)=>yes.and(...['valid','seenAsk','seenResult','delegated','accepted'].map(k=>e[k].atMost(1)))),
  r.law('seen ask has a log position',(e:Env)=>e.seenAsk.eq(1).implies(e.ask.gt(0))),
  r.law('seen result has a log position',(e:Env)=>e.seenResult.eq(1).implies(e.result.gt(0))),
  r.law('occurrences are past log positions',(e:Env)=>yes.and(...['ask','change','result','start','finish','record'].map(k=>e[k].atMost(e.events)))),
