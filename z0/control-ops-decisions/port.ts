@@ -36,7 +36,8 @@ export const resources = (bug = 0) => fun('O10 resources').inputs({ready:bool,me
   return {ok:bit(admitted),place:when(bug===46?e.ready.and(e.memory):admitted,3,bug===3?1:bug===4?3:0),reference_place:when(e.ready,3,bug===3?1:bug===4?3:0)}
 })
 // ops.bend:441-467; Python has no scalar policy_allows twin: policy_guard.py:445-495
-// audits richer receipts. Its stage/family/arm projection is compared separately, not invented as ops.py.
+// audits richer receipts. Only an independent Bend transcription is compared here;
+// it is labelled a limited oracle, never production policy_guard/ops.py parity.
 export const policy = (bug = 0) => fun('O11/O12 policy').inputs({family:nat,named_family:nat,stage:oneOf(...STAGES),named_arm:nat,arm:nat,offload:bool,healthy:bool,abstain:bool}).returns((e:any)=>{
   const credited = e.stage.is('canary').or(e.stage.is('live'),bug===47?e.stage.is('none'):yes.not(),bug===48?e.stage.is('shadow'):yes.not())
   const local = (bug===49?yes:e.family.eq(e.named_family)).and(bug===51?yes:credited,bug===50?yes:e.arm.eq(e.named_arm))
